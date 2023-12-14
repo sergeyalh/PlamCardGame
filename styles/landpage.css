@@ -56,3 +56,38 @@
     flex-direction: column;
     min-height: 100vh;
   }
+
+  .navigation-menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    background-color: #333; /* Dark background */
+  }
+  
+  .navigation-menu ul {
+    list-style: none;
+    display: flex;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .navigation-menu li {
+    margin: 0 15px; /* Spacing between menu items */
+  }
+  
+  .navigation-menu a {
+    color: #fff; /* Light text color for contrast */
+    text-decoration: none;
+    font-size: 16px; /* Adjust font size as needed */
+    padding: 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  .navigation-menu a:hover {
+    background-color: #555; /* Slightly lighter background on hover */
+    color: #ddd; /* Slightly darker text color on hover */
+  }
+  
