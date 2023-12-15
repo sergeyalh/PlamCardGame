@@ -7,6 +7,8 @@
         <ul>
           <li><router-link to="/">Home</router-link></li>
           <li v-if="account"><router-link to="/nfts">View NFTs</router-link></li>
+          <li v-if="account"><router-link to="/game">Play Cards</router-link></li>
+          <li v-if="account"><router-link to="/gameLoards">Play Conquer The World</router-link></li>
           <!-- Add more router-links as needed -->
         </ul>
       </nav>
