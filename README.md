@@ -4,7 +4,7 @@
 ```
 npm install
 ```
-
+adding bomba
 ### Compiles and hot-reloads for development
 ```
 npm run serve
