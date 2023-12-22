@@ -12,27 +12,13 @@ const gameScene = new Phaser.Class({
   initialize: function GameScene() {
     Phaser.Scene.call(this, { key: 'gameScene' });
     this.gameInfo = {
-      activePlayerIndex :0,
-      monthsList : ["January", "February", "March", "April", "May", "June",
+      activePlayerIndex: 0,
+      monthsList: ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"],
-      date: {year:10,month:1, week:1}
+      colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
+      date: { year: 10, month: 1, week: 1 },
+      map: []
     };
-    this.playersInfo = [
-      {
-        infoFromBlockChain: {
-          playerNickName: "",
-          playersNfts:[],
-          playersCharacters:[],
-          playersColors:[]
-        },
-        gameStatus: {
-          
-        }
-      },
-      {},
-      {},
-      {}
-    ];
   },
 
   preload: function () {
@@ -56,11 +42,11 @@ const gameScene = new Phaser.Class({
     this.add.rectangle(menuWidth / 2, menuHeight / 2, menuWidth, menuHeight, 0x333333);
 
     // Add some menu items
-    this.date = this.add.text(20, 50, this.gameInfo.date.year + 'K.' + 
-      this.gameInfo.monthsList[this.gameInfo.date.month - 1] + 
-      '.' +this.gameInfo.date.week, { font: '16px Arial', fill: '#ffffff' });
+    this.date = this.add.text(20, 50, this.gameInfo.date.year + 'K.' +
+      this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
+      '.' + this.gameInfo.date.week, { font: '16px Arial', fill: '#ffffff' });
     this.add.text(20, 100, this.gameInfo.monthsList[0], { font: '16px Arial', fill: '#ffffff' });
-    
+
     // Add End Turn Button
     const endTurnButton = this.add.text(85, 580, 'End Turn', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
     endTurnButton.on('pointerdown', () => this.endTurn());
@@ -113,6 +99,9 @@ const gameScene = new Phaser.Class({
       this.add.rectangle(slotX, slotY, playerOffsetX, playerSlotHeight - 10, 0x333333);
       // Add player image
       this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(playerOffsetX, playerSlotHeight - 10);
+ 
+      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, playerOffsetX - 15, playerSlotHeight - 10, playerOffsetX - 15, playerSlotHeight - 10);
+
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
         const lineX = (i * playerOffsetX) + menuWidth + playersBufferFromMenu;
@@ -162,26 +151,43 @@ const gameScene = new Phaser.Class({
   endTurn: function () {
     console.log('endTurn of player :' + this.gameInfo.activePlayerIndex);
     this.gameInfo.activePlayerIndex = (this.gameInfo.activePlayerIndex + 1) % 4; // Move to the next player
-    if (((this.gameInfo.activePlayerIndex + 1) % 4) == 1 ){
+    if (((this.gameInfo.activePlayerIndex + 1) % 4) == 1) {
       this.gameInfo.date.week += 1;
       if (this.gameInfo.date.week == 5) {
         this.gameInfo.date.week = 1;
-        this.gameInfo.date.month +=1;
+        this.gameInfo.date.month += 1;
         if (this.gameInfo.date.month == 13) {
           this.gameInfo.date.month = 1;
           this.gameInfo.date.year += 1;
         }
       }
-      this.date.setText(this.gameInfo.date.year + 'K.' + 
-      this.gameInfo.monthsList[this.gameInfo.date.month - 1] + 
-      '.' +this.gameInfo.date.week);
+      this.date.setText(this.gameInfo.date.year + 'K.' +
+        this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
+        '.' + this.gameInfo.date.week);
     }
     this.updatePlayerIndicators(); // Update the visual indication for active player
   },
 
   updatePlayerIndicators: function () {
     console.log('updatePlayerIndicators to player :', this.gameInfo.activePlayerIndex);
-    this.turnIndicator.setPosition(530 + this.gameInfo.activePlayerIndex*180, 50)
+    this.turnIndicator.setPosition(530 + this.gameInfo.activePlayerIndex * 180, 50)
+  },
+
+  colorArea: function (slotX, slotY, color, alpha, offSetStartX,offSetStartY, offSetEndX, offSetEndY) {
+    // Graphics object for color overlay
+    let colorOverlay = this.add.graphics({ x: slotX, y: slotY });
+
+    // Draw the rectangle exactly over the image
+    colorOverlay.fillStyle(color, alpha);
+    colorOverlay.fillRect(
+      -0.5 * (offSetStartX), // x position relative to the image
+      -0.5 * (offSetStartY), // y position relative to the image
+      offSetEndX, // width of the rectangle
+      offSetEndY  // height of the rectangle
+    );
+
+    // Move the overlay to be exactly on top of the image
+    colorOverlay.setDepth(1);
   }
 });
 
