@@ -11,6 +11,28 @@ const gameScene = new Phaser.Class({
 
   initialize: function GameScene() {
     Phaser.Scene.call(this, { key: 'gameScene' });
+    this.gameInfo = {
+      activePlayerIndex :0,
+      monthsList : ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"],
+      date: {year:10,month:1, week:1}
+    };
+    this.playersInfo = [
+      {
+        infoFromBlockChain: {
+          playerNickName: "",
+          playersNfts:[],
+          playersCharacters:[],
+          playersColors:[]
+        },
+        gameStatus: {
+          
+        }
+      },
+      {},
+      {},
+      {}
+    ];
   },
 
   preload: function () {
@@ -21,9 +43,11 @@ const gameScene = new Phaser.Class({
     for (let i = 1; i <= 4; i++) {
       this.load.image('player' + i, '/player' + i + '.png');
     }
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 3; i++) {
       this.load.image('char' + i, '/char' + i + '.png');
     }
+
+    this.load.image('turnIndicator', '/clock.png');
   },
   create: function () {
     // Create a menu panel
@@ -32,9 +56,14 @@ const gameScene = new Phaser.Class({
     this.add.rectangle(menuWidth / 2, menuHeight / 2, menuWidth, menuHeight, 0x333333);
 
     // Add some menu items
-    this.add.text(20, 50, 'Item 1', { font: '16px Arial', fill: '#ffffff' });
-    this.add.text(20, 100, 'Item 2', { font: '16px Arial', fill: '#ffffff' });
-    // Add more menu items as needed
+    this.date = this.add.text(20, 50, this.gameInfo.date.year + 'K.' + 
+      this.gameInfo.monthsList[this.gameInfo.date.month - 1] + 
+      '.' +this.gameInfo.date.week, { font: '16px Arial', fill: '#ffffff' });
+    this.add.text(20, 100, this.gameInfo.monthsList[0], { font: '16px Arial', fill: '#ffffff' });
+    
+    // Add End Turn Button
+    const endTurnButton = this.add.text(85, 580, 'End Turn', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
+    endTurnButton.on('pointerdown', () => this.endTurn());
 
     const characterSlotHeight = 120;
     const characterSlotWidth = menuWidth;
@@ -63,7 +92,7 @@ const gameScene = new Phaser.Class({
       plusButton.on('pointerdown', () => this.addCharacter(i));
 
       // 'x' Button in the panel
-      const deleteButton = this.add.text(menuWidth - 20, panelY - 10, 'x', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
+      const deleteButton = this.add.text(menuWidth - 20, panelY - 12, 'x', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
       deleteButton.on('pointerdown', () => this.deleteCharacter(i));
 
       // Draw a line between the slots if it's not the first slot
@@ -90,6 +119,8 @@ const gameScene = new Phaser.Class({
         this.add.line(0, 0, lineX, 0, lineX, playerSlotHeight, 0xffffff).setOrigin(0, 0);
       }
     }
+
+    this.turnIndicator = this.add.image(535, 50, 'turnIndicator').setDisplaySize(30, 30);
 
     // Draw the grid
     const graphics = this.add.graphics({ lineStyle: { width: 1, color: 0xffffff } });
@@ -126,6 +157,31 @@ const gameScene = new Phaser.Class({
   deleteCharacter: function (index) {
     console.log('Delete character at index:', index);
     // Add logic to delete and replace the character
+  },
+
+  endTurn: function () {
+    console.log('endTurn of player :' + this.gameInfo.activePlayerIndex);
+    this.gameInfo.activePlayerIndex = (this.gameInfo.activePlayerIndex + 1) % 4; // Move to the next player
+    if (((this.gameInfo.activePlayerIndex + 1) % 4) == 1 ){
+      this.gameInfo.date.week += 1;
+      if (this.gameInfo.date.week == 5) {
+        this.gameInfo.date.week = 1;
+        this.gameInfo.date.month +=1;
+        if (this.gameInfo.date.month == 13) {
+          this.gameInfo.date.month = 1;
+          this.gameInfo.date.year += 1;
+        }
+      }
+      this.date.setText(this.gameInfo.date.year + 'K.' + 
+      this.gameInfo.monthsList[this.gameInfo.date.month - 1] + 
+      '.' +this.gameInfo.date.week);
+    }
+    this.updatePlayerIndicators(); // Update the visual indication for active player
+  },
+
+  updatePlayerIndicators: function () {
+    console.log('updatePlayerIndicators to player :', this.gameInfo.activePlayerIndex);
+    this.turnIndicator.setPosition(530 + this.gameInfo.activePlayerIndex*180, 50)
   }
 });
 
