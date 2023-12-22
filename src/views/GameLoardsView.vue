@@ -100,7 +100,7 @@ const gameScene = new Phaser.Class({
       // Add player image
       this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(playerOffsetX, playerSlotHeight - 10);
  
-      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, playerOffsetX - 15, playerSlotHeight - 10, playerOffsetX - 15, playerSlotHeight - 10);
+      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, playerOffsetX - 22, playerSlotHeight - 10);
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
@@ -118,11 +118,18 @@ const gameScene = new Phaser.Class({
     const rows = 6; // Update number of rows to 8
 
     for (let i = 0; i < cols; i++) {
+      this.gameInfo.map[i] = [];
       for (let j = 0; j < rows; j++) {
         const x = i * cellSize + menuWidth + (cellSize / 2);
         const y = j * cellSize + playerSlotHeight + (cellSize / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
-        this.add.image(x, y, randomPiece).setDisplaySize(cellSize - 3, cellSize - 3); // Scale the image to fit the cell
+        let mapP = this.add.image(x, y, randomPiece).setDisplaySize(cellSize - 3, cellSize - 3); // Scale the image to fit the cell
+        this.gameInfo.map[i][j] = {
+          x: x,
+          y: y,
+          photo: mapP,
+          color: null
+        };
       }
     }
 
@@ -135,8 +142,33 @@ const gameScene = new Phaser.Class({
       graphics.moveTo(menuWidth, j * cellSize + playerSlotHeight);
       graphics.lineTo(cellSize * cols + menuWidth, j * cellSize + playerSlotHeight);
     }
+
+    this.setStartMap();
     graphics.strokePath();
   },
+  
+  setStartMap:function (){
+    let red1stArea = this.gameInfo.map[1][1];
+    let colorRed = this.gameInfo.colors[0];
+    this.gameInfo.map[1][1].color = colorRed;
+    this.colorArea(red1stArea.x, red1stArea.y, colorRed, 0.4, 150, 150);
+
+    let green1stArea = this.gameInfo.map[2][4];
+    let colorGreen = this.gameInfo.colors[1];
+    this.gameInfo.map[2][4].color = colorGreen;
+    this.colorArea(green1stArea.x, green1stArea.y, colorGreen, 0.4, 150, 150);
+
+    let pink1stArea = this.gameInfo.map[5][1];
+    let colorPink = this.gameInfo.colors[2];
+    this.gameInfo.map[5][1].color = colorPink;
+    this.colorArea(pink1stArea.x, pink1stArea.y, colorPink, 0.4, 150, 150);
+
+    let blue1stArea = this.gameInfo.map[6][4];
+    let colorBlue = this.gameInfo.colors[3];
+    this.gameInfo.map[6][4].color = colorBlue;
+    this.colorArea(blue1stArea.x, blue1stArea.y, colorBlue, 0.4, 150, 150);
+  },
+
   // Methods to handle character addition and deletion
   addCharacter: function (index) {
     console.log('Add character at index:', index);
@@ -173,17 +205,17 @@ const gameScene = new Phaser.Class({
     this.turnIndicator.setPosition(530 + this.gameInfo.activePlayerIndex * 180, 50)
   },
 
-  colorArea: function (slotX, slotY, color, alpha, offSetStartX,offSetStartY, offSetEndX, offSetEndY) {
+  colorArea: function (slotX, slotY, color, alpha, width, height) {
     // Graphics object for color overlay
     let colorOverlay = this.add.graphics({ x: slotX, y: slotY });
 
     // Draw the rectangle exactly over the image
     colorOverlay.fillStyle(color, alpha);
     colorOverlay.fillRect(
-      -0.5 * (offSetStartX), // x position relative to the image
-      -0.5 * (offSetStartY), // y position relative to the image
-      offSetEndX, // width of the rectangle
-      offSetEndY  // height of the rectangle
+      -0.5 * (width), // x position relative to the image
+      -0.5 * (height), // y position relative to the image
+      width, // width of the rectangle
+      height  // height of the rectangle
     );
 
     // Move the overlay to be exactly on top of the image
