@@ -17,7 +17,13 @@ const gameScene = new Phaser.Class({
         "July", "August", "September", "October", "November", "December"],
       colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
       date: { year: 10, month: 1, week: 1 },
-      map: []
+      map: [],
+      players: [
+        { nickname: "Jacov", cash: 100, nextIncome: 0 },
+        { nickname: "Serg", cash: 100, nextIncome: 0 },
+        { nickname: "Elad", cash: 100, nextIncome: 0 },
+        { nickname: "Izov", cash: 100, nextIncome: 0 }
+      ]
     };
   },
 
@@ -42,10 +48,15 @@ const gameScene = new Phaser.Class({
     this.add.rectangle(menuWidth / 2, menuHeight / 2, menuWidth, menuHeight, 0x333333);
 
     // Add some menu items
-    this.date = this.add.text(20, 50, this.gameInfo.date.year + 'K.' +
+    this.date = this.add.text(66, 10, this.gameInfo.date.year + 'K.' +
       this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
-      '.' + this.gameInfo.date.week, { font: '16px Arial', fill: '#ffffff' });
-    this.add.text(20, 100, this.gameInfo.monthsList[0], { font: '16px Arial', fill: '#ffffff' });
+      '.' + this.gameInfo.date.week, { font: '16px Arial', fill: '#03fc2c' });
+
+
+    // Create a box for the player info
+    this.playerInfoBox = this.add.graphics();
+    this.playerInfoBox.fillStyle(0x03fc2c, 0.8); // Dark background with some transparency
+    this.playerInfoBox.fillRect(42, 50, 170, 70); // Adjust size and position as needed
 
     // Add End Turn Button
     const endTurnButton = this.add.text(85, 580, 'End Turn', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
@@ -99,7 +110,7 @@ const gameScene = new Phaser.Class({
       this.add.rectangle(slotX, slotY, playerOffsetX, playerSlotHeight - 10, 0x333333);
       // Add player image
       this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(playerOffsetX, playerSlotHeight - 10);
- 
+
       this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, playerOffsetX - 22, playerSlotHeight - 10);
 
       // Draw a line between the slots if it's not the first slot
@@ -116,11 +127,12 @@ const gameScene = new Phaser.Class({
     const cellSize = 150; // Size of the grid cell
     const cols = 8; // Number of columns
     const rows = 6; // Update number of rows to 8
+    const gridStart = menuWidth + 10;
 
     for (let i = 0; i < cols; i++) {
       this.gameInfo.map[i] = [];
       for (let j = 0; j < rows; j++) {
-        const x = i * cellSize + menuWidth + (cellSize / 2);
+        const x = i * cellSize + gridStart + (cellSize / 2);
         const y = j * cellSize + playerSlotHeight + (cellSize / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
         let mapP = this.add.image(x, y, randomPiece).setDisplaySize(cellSize - 3, cellSize - 3); // Scale the image to fit the cell
@@ -135,19 +147,39 @@ const gameScene = new Phaser.Class({
 
     // Draw the grid lines on top of the images
     for (let i = 0; i <= cols; i++) {
-      graphics.moveTo(i * cellSize + menuWidth, playerSlotHeight);
-      graphics.lineTo(i * cellSize + menuWidth, cellSize * rows + playerSlotHeight);
+      graphics.moveTo(i * cellSize + gridStart, playerSlotHeight);
+      graphics.lineTo(i * cellSize + gridStart, cellSize * rows + playerSlotHeight);
     }
     for (let j = 0; j <= rows; j++) {
-      graphics.moveTo(menuWidth, j * cellSize + playerSlotHeight);
-      graphics.lineTo(cellSize * cols + menuWidth, j * cellSize + playerSlotHeight);
+      graphics.moveTo(gridStart, j * cellSize + playerSlotHeight);
+      graphics.lineTo(cellSize * cols + gridStart, j * cellSize + playerSlotHeight);
     }
 
     this.setStartMap();
     graphics.strokePath();
+
+    this.updatePlayerInfo();
   },
-  
-  setStartMap:function (){
+
+  updatePlayerInfo: function () {
+    const activePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
+    if (!this.playerInfoText) {
+      // Create it if it doesn't exist
+      this.playerInfoText = this.add.text(47, 60, "", { font: '16px Arial', fill: '#ffffff', align: 'left', wordWrap: { width: 190 } });
+    }
+
+    // Format the text into multiple lines
+    const infoText = [
+      `Player: ${activePlayer.nickname}`,
+      `Cash: $${activePlayer.cash}`,
+      `Next Income: $${activePlayer.nextIncome}`
+    ].join('\n'); // Join with new line characters
+
+    // Update the text
+    this.playerInfoText.setText(infoText);
+  },
+
+  setStartMap: function () {
     let red1stArea = this.gameInfo.map[1][1];
     let colorRed = this.gameInfo.colors[0];
     this.gameInfo.map[1][1].color = colorRed;
@@ -198,6 +230,7 @@ const gameScene = new Phaser.Class({
         '.' + this.gameInfo.date.week);
     }
     this.updatePlayerIndicators(); // Update the visual indication for active player
+    this.updatePlayerInfo(); // Update the player info display for the new active player
   },
 
   updatePlayerIndicators: function () {
@@ -228,7 +261,7 @@ export default {
   mounted() {
     const config = {
       type: Phaser.AUTO,
-      width: 1460, // grid width (600) + menu width (250)
+      width: 1470, // grid width (600) + menu width (250)
       height: 980, // grid height (600) + players section (70)
       parent: 'phaser-game',
       scene: [gameScene]
