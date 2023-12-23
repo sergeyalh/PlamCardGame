@@ -19,10 +19,10 @@ const gameScene = new Phaser.Class({
       date: { year: 10, month: 1, week: 1 },
       map: [],
       players: [
-        { nickname: "Jacov", cash: 100, nextIncome: 0 },
+        { nickname: "Jacob", cash: 100, nextIncome: 0 },
         { nickname: "Serg", cash: 100, nextIncome: 0 },
-        { nickname: "Elad", cash: 100, nextIncome: 0 },
-        { nickname: "Izov", cash: 100, nextIncome: 0 }
+        { nickname: "Izov", cash: 100, nextIncome: 0 },
+        { nickname: "Elad", cash: 100, nextIncome: 0 }
       ]
     };
   },
@@ -30,18 +30,26 @@ const gameScene = new Phaser.Class({
   preload: function () {
     // Load images
     for (let i = 1; i <= 6; i++) {
-      this.load.image('mapPiece' + i, '/map' + i + '.png');
+      this.load.image('mapPiece' + i, 'mapPieces/map' + i + '.png');
     }
     for (let i = 1; i <= 4; i++) {
-      this.load.image('player' + i, '/player' + i + '.png');
+      this.load.image('player' + i, 'players/player' + i + '.png');
     }
-    for (let i = 1; i <= 3; i++) {
-      this.load.image('char' + i, '/char' + i + '.png');
-    }
+
+    this.load.json('characters', 'characters.json');
 
     this.load.image('turnIndicator', '/clock.png');
   },
   create: function () {
+    this.charactersData = this.cache.json.get('characters');
+    for (let i = 0; i <= 3; i++) {
+      this.load.image(this.charactersData[i].nickname, 'characters/' + this.charactersData[i].imagePath);
+    }
+    // After setting up all the loaders for the images, start the loading process
+    this.load.once('complete', this.setupGame, this); // Setup the callback for when loading is complete
+    this.load.start(); // Start the loader
+  },
+  setupGame: function () {
     // Create a menu panel
     const menuWidth = 250;
     const menuHeight = this.game.config.height;
@@ -75,14 +83,14 @@ const gameScene = new Phaser.Class({
       // Create the character slot
       this.add.rectangle(menuWidth / 2, slotY + (imageHeight / 2), characterSlotWidth, imageHeight, 0x444444);
       // Add character image
-      this.add.image(menuWidth / 2, slotY + (imageHeight / 2), 'char' + (i + 1)).setDisplaySize(characterSlotWidth - 3, imageHeight);
+      this.add.image(menuWidth / 2, slotY + (imageHeight / 2), this.charactersData[i].nickname).setDisplaySize(characterSlotWidth - 3, imageHeight);
 
       // Create the panel at the bottom of the slot
       const panelY = slotY + imageHeight + (panelHeight / 2);
       this.add.rectangle(menuWidth / 2, panelY, characterSlotWidth, panelHeight, 0x666666);
 
       // Cost Display in the panel
-      this.add.text(20, panelY - 10, 'Cost: [3]', { font: '16px Arial', fill: '#ffffff' });
+      this.add.text(20, panelY - 10, 'Cost: [' +  this.charactersData[i].cost + ']', { font: '16px Arial', fill: '#ffffff' });
 
       // '+' Button in the panel
       const plusButton = this.add.text(menuWidth - 40, panelY - 10, '+', { font: '20px Arial', fill: '#00ff00' }).setInteractive();
@@ -140,7 +148,8 @@ const gameScene = new Phaser.Class({
           x: x,
           y: y,
           photo: mapP,
-          color: null
+          color: null,
+          owner: null
         };
       }
     }
@@ -180,25 +189,18 @@ const gameScene = new Phaser.Class({
   },
 
   setStartMap: function () {
-    let red1stArea = this.gameInfo.map[1][1];
-    let colorRed = this.gameInfo.colors[0];
-    this.gameInfo.map[1][1].color = colorRed;
-    this.colorArea(red1stArea.x, red1stArea.y, colorRed, 0.4, 150, 150);
+    this.conquerTerritory(0, 1, 1);
+    this.conquerTerritory(1, 2, 4);
+    this.conquerTerritory(2, 5, 1);
+    this.conquerTerritory(3, 6, 4);
+  },
 
-    let green1stArea = this.gameInfo.map[2][4];
-    let colorGreen = this.gameInfo.colors[1];
-    this.gameInfo.map[2][4].color = colorGreen;
-    this.colorArea(green1stArea.x, green1stArea.y, colorGreen, 0.4, 150, 150);
-
-    let pink1stArea = this.gameInfo.map[5][1];
-    let colorPink = this.gameInfo.colors[2];
-    this.gameInfo.map[5][1].color = colorPink;
-    this.colorArea(pink1stArea.x, pink1stArea.y, colorPink, 0.4, 150, 150);
-
-    let blue1stArea = this.gameInfo.map[6][4];
-    let colorBlue = this.gameInfo.colors[3];
-    this.gameInfo.map[6][4].color = colorBlue;
-    this.colorArea(blue1stArea.x, blue1stArea.y, colorBlue, 0.4, 150, 150);
+  conquerTerritory: function (playerIndex, mapX, mapY) {
+    let mapPiece = this.gameInfo.map[mapX][mapY];
+    let color = this.gameInfo.colors[playerIndex];
+    this.gameInfo.map[mapX][mapY].color = color;
+    this.gameInfo.map[mapX][mapY].owner = playerIndex;
+    this.colorArea(mapPiece.x, mapPiece.y, color, 0.4, 150, 150);
   },
 
   // Methods to handle character addition and deletion
