@@ -13,16 +13,17 @@ const gameScene = new Phaser.Class({
     Phaser.Scene.call(this, { key: 'gameScene' });
     this.gameInfo = {
       activePlayerIndex: 0,
+      activePlayerCharactersOptions: [],
       monthsList: ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"],
       colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
       date: { year: 10, month: 1, week: 1 },
       map: [],
       players: [
-        { nickname: "Jacob", cash: 100, nextIncome: 0 },
-        { nickname: "Serg", cash: 100, nextIncome: 0 },
-        { nickname: "Izov", cash: 100, nextIncome: 0 },
-        { nickname: "Elad", cash: 100, nextIncome: 0 }
+        { nickname: "Jacob", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] },
+        { nickname: "Serg", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] },
+        { nickname: "Izov", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] },
+        { nickname: "Elad", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] }
       ]
     };
   },
@@ -41,19 +42,25 @@ const gameScene = new Phaser.Class({
     this.load.image('turnIndicator', '/clock.png');
   },
   create: function () {
-    this.charactersData = this.cache.json.get('characters');
-    for (let i = 0; i <= 3; i++) {
-      this.load.image(this.charactersData[i].nickname, 'characters/' + this.charactersData[i].imagePath);
+    const characters = this.cache.json.get('characters');
+    this.charactersData = characters.characters;
+    for (let i = 0; i < this.charactersData.length; i++) {
+      this.charactersData[i].image = this.load.image(this.charactersData[i].nickname, 'characters/' + this.charactersData[i].imagePath);
     }
+
+    this.underbossChar = characters.underBoss;
+    this.underbossChar.image = this.load.image(characters.underBoss.nickname, 'characters/' + characters.underBoss.imagePath);
+
+
     // After setting up all the loaders for the images, start the loading process
     this.load.once('complete', this.setupGame, this); // Setup the callback for when loading is complete
     this.load.start(); // Start the loader
   },
   setupGame: function () {
     // Create a menu panel
-    const menuWidth = 250;
+    this.menuWidth = 250;
     const menuHeight = this.game.config.height;
-    this.add.rectangle(menuWidth / 2, menuHeight / 2, menuWidth, menuHeight, 0x333333);
+    this.add.rectangle(this.menuWidth / 2, menuHeight / 2, this.menuWidth, menuHeight, 0x333333);
 
     // Add some menu items
     this.date = this.add.text(66, 10, this.gameInfo.date.year + 'K.' +
@@ -70,39 +77,33 @@ const gameScene = new Phaser.Class({
     const endTurnButton = this.add.text(85, 580, 'End Turn', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
     endTurnButton.on('pointerdown', () => this.endTurn());
 
-    const characterSlotHeight = 120;
-    const characterSlotWidth = menuWidth;
-    const panelHeight = 20; // Height for the bottom panel
-    const imageHeight = characterSlotHeight - panelHeight; // Remaining height for the image
-    const startY = this.game.config.height - (characterSlotHeight * 3); // Position for the first character slot
+    this.characterSlotHeight = 120;
+    this.panelHeight = 20; // Height for the bottom panel
+    this.characterImageHeight = this.characterSlotHeight - this.panelHeight; // Remaining height for the image
+    this.startYforChars = this.game.config.height - (this.characterSlotHeight * 3); // Position for the first character slot
 
     // Draw the character slots with images and interactive elements
     for (let i = 0; i < 3; i++) {
-      const slotY = startY + (i * characterSlotHeight);
+      const slotY = this.startYforChars + (i * this.characterSlotHeight);
+      const panelY = slotY + this.characterImageHeight + (this.panelHeight / 2);
 
       // Create the character slot
-      this.add.rectangle(menuWidth / 2, slotY + (imageHeight / 2), characterSlotWidth, imageHeight, 0x444444);
-      // Add character image
-      this.add.image(menuWidth / 2, slotY + (imageHeight / 2), this.charactersData[i].nickname).setDisplaySize(characterSlotWidth - 3, imageHeight);
+      this.add.rectangle(this.menuWidth / 2, slotY + (this.characterImageHeight / 2), this.menuWidth, this.characterImageHeight, 0x444444);
 
       // Create the panel at the bottom of the slot
-      const panelY = slotY + imageHeight + (panelHeight / 2);
-      this.add.rectangle(menuWidth / 2, panelY, characterSlotWidth, panelHeight, 0x666666);
-
-      // Cost Display in the panel
-      this.add.text(20, panelY - 10, 'Cost: [' +  this.charactersData[i].cost + ']', { font: '16px Arial', fill: '#ffffff' });
+      this.add.rectangle(this.menuWidth / 2, panelY, this.menuWidth, this.panelHeight, 0x666666);
 
       // '+' Button in the panel
-      const plusButton = this.add.text(menuWidth - 40, panelY - 10, '+', { font: '20px Arial', fill: '#00ff00' }).setInteractive();
+      const plusButton = this.add.text(this.menuWidth - 40, panelY - 10, '+', { font: '20px Arial', fill: '#00ff00' }).setInteractive();
       plusButton.on('pointerdown', () => this.addCharacter(i));
 
       // 'x' Button in the panel
-      const deleteButton = this.add.text(menuWidth - 20, panelY - 12, 'x', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
+      const deleteButton = this.add.text(this.menuWidth - 20, panelY - 12, 'x', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
       deleteButton.on('pointerdown', () => this.deleteCharacter(i));
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
-        this.add.line(0, 0, 0, slotY, menuWidth, slotY, 0xffffff).setOrigin(0, 0);
+        this.add.line(0, 0, 0, slotY, this.menuWidth, slotY, 0xffffff).setOrigin(0, 0);
       }
     }
 
@@ -113,7 +114,7 @@ const gameScene = new Phaser.Class({
 
     for (let i = 0; i < 4; i++) {
       // Positioning each player slot
-      const slotX = (i * playerOffsetX) + menuWidth + playersBufferFromMenu + (playerOffsetX / 2);
+      const slotX = (i * playerOffsetX) + this.menuWidth + playersBufferFromMenu + (playerOffsetX / 2);
       const slotY = playerSlotHeight / 2;
       this.add.rectangle(slotX, slotY, playerOffsetX, playerSlotHeight - 10, 0x333333);
       // Add player image
@@ -123,7 +124,7 @@ const gameScene = new Phaser.Class({
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
-        const lineX = (i * playerOffsetX) + menuWidth + playersBufferFromMenu;
+        const lineX = (i * playerOffsetX) + this.menuWidth + playersBufferFromMenu;
         this.add.line(0, 0, lineX, 0, lineX, playerSlotHeight, 0xffffff).setOrigin(0, 0);
       }
     }
@@ -135,7 +136,7 @@ const gameScene = new Phaser.Class({
     const cellSize = 150; // Size of the grid cell
     const cols = 8; // Number of columns
     const rows = 6; // Update number of rows to 8
-    const gridStart = menuWidth + 10;
+    const gridStart = this.menuWidth + 10;
 
     for (let i = 0; i < cols; i++) {
       this.gameInfo.map[i] = [];
@@ -186,21 +187,81 @@ const gameScene = new Phaser.Class({
 
     // Update the text
     this.playerInfoText.setText(infoText);
+
+    this.initCharactersOptionsView(this.gameInfo.activePlayerIndex);
   },
 
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.initCharactersOptions(0)
+
+    //Init Characters for 1st player
+    this.initCharactersOptionsView(0);
+
     this.conquerTerritory(1, 2, 4);
+    this.addUnderBoss(1, 2, 4);
+    this.initCharactersOptions(1)
     this.conquerTerritory(2, 5, 1);
+    this.addUnderBoss(2, 5, 1);
+    this.initCharactersOptions(2)
     this.conquerTerritory(3, 6, 4);
+    this.addUnderBoss(3, 6, 4);
+    this.initCharactersOptions(3)
   },
 
+  initCharactersOptionsView: function (playerIndex) {
+    for (let i = 0; i < this.gameInfo.players[playerIndex].availableCharacters.length; i++) {
+      const slotY = this.startYforChars + (i * this.characterSlotHeight);
+      const panelY = slotY + this.characterImageHeight + (this.panelHeight / 2);
+      // Add character image
+      this.gameInfo.activePlayerCharactersOptions[i] = {};
+      this.gameInfo.activePlayerCharactersOptions[i].image = this.add.image(this.menuWidth / 2, slotY + (this.characterImageHeight / 2), this.gameInfo.players[playerIndex].availableCharacters[i].nickname).setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+
+      // Cost Display in the panel
+      this.gameInfo.activePlayerCharactersOptions[i].cost = this.add.text(20, panelY - 10, 'Cost: [' + this.gameInfo.players[playerIndex].availableCharacters[i].cost + ']', { font: '16px Arial', fill: '#ffffff' });
+
+    }
+  },
+
+  clearCharactersOptionsView: function () {
+    for (let i = 0; i < 3; i++) {
+      this.gameInfo.activePlayerCharactersOptions[i].image.destroy();
+      this.gameInfo.activePlayerCharactersOptions[i].cost.destroy();
+    }
+  },
+
+  initCharactersOptions: function (playerIndex) {
+    this.gameInfo.players[playerIndex].availableCharacters = [];
+    let uniqeStartUpCharacters = this.generateUniqueRandomNumbers();
+    for (let index = 0; index < 3; index++) {
+      this.gameInfo.players[playerIndex].availableCharacters.push(this.charactersData[uniqeStartUpCharacters[index]]);
+    }
+  },
+
+  generateUniqueRandomNumbers: function () {
+    const uniqueNumbers = new Set();
+    while (uniqueNumbers.size < 3) {
+      const randomNumber = Math.floor(Math.random() * (this.charactersData.length)) + 0;
+      uniqueNumbers.add(randomNumber);
+    }
+    return Array.from(uniqueNumbers);
+  },
+  addUnderBoss: function (playerIndex, mapX, mapY) {
+    // Add UnderBoss for each player
+    let underBossClone = { ...this.underbossChar };
+    underBossClone.location = { x: mapX, y: mapY };
+    this.gameInfo.players[playerIndex].activeCharacters.push(underBossClone);
+    this.gameInfo.map[mapX][mapY].characters = [{ player: playerIndex, character: underBossClone }];
+
+  },
   conquerTerritory: function (playerIndex, mapX, mapY) {
     let mapPiece = this.gameInfo.map[mapX][mapY];
     let color = this.gameInfo.colors[playerIndex];
     this.gameInfo.map[mapX][mapY].color = color;
     this.gameInfo.map[mapX][mapY].owner = playerIndex;
     this.colorArea(mapPiece.x, mapPiece.y, color, 0.4, 150, 150);
+    this.gameInfo.players[playerIndex].underControlPieces.push({ x: mapX, y: mapY });
   },
 
   // Methods to handle character addition and deletion
@@ -231,6 +292,7 @@ const gameScene = new Phaser.Class({
         this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
         '.' + this.gameInfo.date.week);
     }
+    this.clearCharactersOptionsView();
     this.updatePlayerIndicators(); // Update the visual indication for active player
     this.updatePlayerInfo(); // Update the player info display for the new active player
   },
