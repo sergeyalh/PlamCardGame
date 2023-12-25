@@ -21,10 +21,10 @@ const gameScene = new Phaser.Class({
       date: { year: 10, month: 1, week: 1 },
       map: [],
       players: [
-        { nickname: "Jacob", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
-        { nickname: "Serg", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
-        { nickname: "Izov", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
-        { nickname: "Elad", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null }
+        { nickname: "Jacob", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
+        { nickname: "Serg", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
+        { nickname: "Izov", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
+        { nickname: "Elad", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null }
       ]
     };
   },
@@ -150,6 +150,7 @@ const gameScene = new Phaser.Class({
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
         let mapP = this.add.image(x, y, randomPiece).setDisplaySize(this.cellSize - 3, this.cellSize - 3); // Scale the image to fit the cell
         this.gameInfo.map[i][j] = {
+          charactersOnMapPiece: [],
           x: x,
           y: y,
           photo: mapP,
@@ -183,7 +184,7 @@ const gameScene = new Phaser.Class({
     const activePlayerCharacters = this.gameInfo.players[this.gameInfo.activePlayerIndex].activeCharacters;
 
     // Loop through each character and add their location to the set
-    activePlayerCharacters.forEach(character => {
+    Object.values(activePlayerCharacters).forEach(character => {
       // Assuming character.location holds an object with x and y
       const locationKey = `${character.location.x},${character.location.y}`; // Create a unique key for the location
       uniqueLocations.add(locationKey);
@@ -209,25 +210,42 @@ const gameScene = new Phaser.Class({
     });
   },
 
-  showCharactersPopup: function (x,y) {
+  getCharactersAtLocation: function (x, y) {
+    // Assuming you have a 2D array for the map and each cell holds character information
+    let characters = this.gameInfo.map[x][y].charactersOnMapPiece;
+    return characters || [];
+  },
+
+  createOverlay: function () {
+    const overlay = this.add.rectangle(0, 0, this.game.config.width, this.game.config.height, 0x000000);
+    overlay.setOrigin(0, 0); // Top-left corner
+    overlay.setAlpha(0.1); // Semi-transparent
+    overlay.setDepth(6); // Ensure it's below the popup but above other game elements
+    overlay.setInteractive(); // Block clicks
+    this.overlay = overlay;
+  },
+
+  showCharactersPopup: function (x, y) {
     // Close any existing popups
     this.closePopup();
 
-    console.log(x+":"+y)
+    // Create an overlay
+    this.createOverlay();
+
     // Create a new popup at the center of the game
-    const popupX = this.game.config.width / 2 + 120;
+    const popupX = this.game.config.width / 2 + 125;
     const popupY = this.game.config.height / 2 + 36;
 
     // Create a new container for the popup elements
     this.charactersPopup = this.add.container(popupX, popupY);
 
     // Create the background for the popup
-    const background = this.add.rectangle(0, 0, 1000, 800, 0x000000);
-    background.setAlpha(0.8);
+    const background = this.add.rectangle(0, 0, 1170, 880, 0x000000);
+    background.setAlpha(0.7);
     this.charactersPopup.add(background);
 
     // Create a close button
-    const closeButton = this.add.text(485, -398, 'X', { fontSize: '20px', fill: '#ff0044' });
+    const closeButton = this.add.text(570, -438, 'X', { fontSize: '20px', fill: '#ff0044' });
     closeButton.setInteractive();
     closeButton.on('pointerdown', () => {
       // Close and remove the popup
@@ -235,8 +253,82 @@ const gameScene = new Phaser.Class({
     });
     this.charactersPopup.add(closeButton);
 
+    const allCharactersOnThisPiece = this.getCharactersAtLocation(x, y);
+    const yInitialOffSet = -360; // Start a bit below the top of the popup
+    let yOffset = yInitialOffSet
+    let xOffset = -550; // Start a bit below the top of the popup
+    let xEnemyOffset = 350;
+    let yEnempyOffset = yInitialOffSet
+    let charactersPerColumn = 5; // Number of characters per column
+    let columnWidth = 100; // Adjust based on image size and desired spacing
+    let characterCount = 0; // Track the number of characters processed
+    let enemyCharacterCount = 0;
+    allCharactersOnThisPiece.forEach(element => {
+      if (element.player === this.gameInfo.activePlayerIndex) {
+        characterCount += 1;
+        // Add the character's image to the popup
+        let charImage = this.add.image(xOffset + 110, yOffset, element.character.nickname); // use element.character.imagePath or similar
+        charImage.setDisplaySize(220, 90); // Adjust size as needed
+        this.charactersPopup.add(charImage);
+
+        // Draw a border around the character's image
+        let borderWidth = 2; // Width of the border
+        let border = this.add.graphics();
+        border.lineStyle(borderWidth, 0xffffff, 1); // White border, but you can change color
+        border.strokeRect(
+          xOffset + 110 - charImage.displayWidth / 2 - borderWidth / 2,
+          yOffset - charImage.displayHeight / 2 - borderWidth / 2,
+          charImage.displayWidth + borderWidth,
+          charImage.displayHeight + borderWidth
+        );
+        this.charactersPopup.add(border); // Add the border to the popup
+
+        // Add the character's nickname text on top of the image
+        let playerText = this.add.text(xOffset, yOffset + 30, element.character.nickname, { fontSize: '16px', fill: '#ffffff' });
+        this.charactersPopup.add(playerText);
+
+        // Check if we need to move to the next column
+        if (characterCount % charactersPerColumn === 0) {
+          xOffset += columnWidth + 110 + 15; // Move to the next column
+          yOffset = yInitialOffSet; // Reset Y position for the top of the new column
+        } else {
+          yOffset += 93;  // Move down for the next entry, ensuring space for image and text
+        }
+      } else {
+        enemyCharacterCount += 1;
+        // Add the character's image to the popup
+        let charImage = this.add.image(xEnemyOffset + 110, yEnempyOffset, element.character.nickname); // use element.character.imagePath or similar
+        charImage.setDisplaySize(220, 90); // Adjust size as needed
+        this.charactersPopup.add(charImage);
+
+        // Draw a border around the character's image
+        let borderWidth = 2; // Width of the border
+        let border = this.add.graphics();
+        border.lineStyle(borderWidth, this.gameInfo.colors[element.player], 1); // White border, but you can change color
+        border.strokeRect(
+          xEnemyOffset + 110 - charImage.displayWidth / 2 - borderWidth / 2,
+          yEnempyOffset - charImage.displayHeight / 2 - borderWidth / 2,
+          charImage.displayWidth + borderWidth,
+          charImage.displayHeight + borderWidth
+        );
+        this.charactersPopup.add(border); // Add the border to the popup
+
+        // Add the character's nickname text on top of the image
+        let playerText = this.add.text(xEnemyOffset, yEnempyOffset + 30, element.character.nickname, { fontSize: '16px', fill: '#ffffff' });
+        this.charactersPopup.add(playerText);
+
+        // Check if we need to move to the next column
+        if (enemyCharacterCount % charactersPerColumn === 0) {
+          xEnemyOffset += -columnWidth - 110 - 15; // Move to the next column
+          yEnempyOffset = yInitialOffSet; // Reset Y position for the top of the new column
+        } else {
+          yEnempyOffset += 93;  // Move down for the next entry, ensuring space for image and text
+        }
+      }
+    });
+
     // Set the entire container to a higher depth so it appears on top
-    this.charactersPopup.setDepth(6);
+    this.charactersPopup.setDepth(7);
   },
 
   closePopup: function () {
@@ -244,6 +336,12 @@ const gameScene = new Phaser.Class({
     if (this.charactersPopup) {
       this.charactersPopup.destroy();
       this.charactersPopup = null;
+    }
+
+    // Also destroy the overlay
+    if (this.overlay) {
+      this.overlay.destroy();
+      this.overlay = null;
     }
   },
 
@@ -357,8 +455,12 @@ const gameScene = new Phaser.Class({
     // Add UnderBoss for each player
     let underBossClone = { ...this.underbossChar };
     underBossClone.location = { x: mapX, y: mapY };
-    this.gameInfo.players[playerIndex].activeCharacters.push(underBossClone);
-    this.gameInfo.map[mapX][mapY].characters = [{ player: playerIndex, character: underBossClone }];
+    const uid = function () {
+      return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+    underBossClone.id = uid;
+    this.gameInfo.players[playerIndex].activeCharacters[uid] = underBossClone;
+    this.gameInfo.map[mapX][mapY].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
 
   },
   conquerTerritory: function (playerIndex, mapX, mapY) {
