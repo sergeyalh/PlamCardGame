@@ -14,6 +14,7 @@ const gameScene = new Phaser.Class({
     this.gameInfo = {
       activePlayerIndex: 0,
       activePlayerCharactersOptions: [],
+      activPlayereCharactersLocationIcons: [],
       monthsList: ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"],
       colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
@@ -29,6 +30,7 @@ const gameScene = new Phaser.Class({
   },
 
   preload: function () {
+    this.load.image('characterLocation', 'ocupid.png');
     this.load.image('deleteIndicator', 'fierd.png');  // Load the deletion indicator image
 
     // Load images
@@ -110,24 +112,24 @@ const gameScene = new Phaser.Class({
     }
 
     // Draw the player slots
-    const playerSlotHeight = 70; // Height of the players section
-    const playerOffsetX = 180; // Size of the grid cell
-    const playersBufferFromMenu = 250;
+    this.playerSlotHeight = 70; // Height of the players section
+    this.playerOffsetX = 180; // Size of the grid cell
+    this.playersBufferFromMenu = 250;
 
     for (let i = 0; i < 4; i++) {
       // Positioning each player slot
-      const slotX = (i * playerOffsetX) + this.menuWidth + playersBufferFromMenu + (playerOffsetX / 2);
-      const slotY = playerSlotHeight / 2;
-      this.add.rectangle(slotX, slotY, playerOffsetX, playerSlotHeight - 10, 0x333333);
+      const slotX = (i * this.playerOffsetX) + this.menuWidth + this.playersBufferFromMenu + (this.playerOffsetX / 2);
+      const slotY = this.playerSlotHeight / 2;
+      this.add.rectangle(slotX, slotY, this.playerOffsetX, this.playerSlotHeight - 10, 0x333333);
       // Add player image
-      this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(playerOffsetX, playerSlotHeight - 10);
+      this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(this.playerOffsetX, this.playerSlotHeight - 10);
 
-      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, playerOffsetX - 22, playerSlotHeight - 10);
+      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, this.playerOffsetX - 22, this.playerSlotHeight - 10);
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
-        const lineX = (i * playerOffsetX) + this.menuWidth + playersBufferFromMenu;
-        this.add.line(0, 0, lineX, 0, lineX, playerSlotHeight, 0xffffff).setOrigin(0, 0);
+        const lineX = (i * this.playerOffsetX) + this.menuWidth + this.playersBufferFromMenu;
+        this.add.line(0, 0, lineX, 0, lineX, this.playerSlotHeight, 0xffffff).setOrigin(0, 0);
       }
     }
 
@@ -135,18 +137,18 @@ const gameScene = new Phaser.Class({
 
     // Draw the grid
     const graphics = this.add.graphics({ lineStyle: { width: 1, color: 0xffffff } });
-    const cellSize = 150; // Size of the grid cell
+    this.cellSize = 150; // Size of the grid cell
     const cols = 8; // Number of columns
     const rows = 6; // Update number of rows to 8
-    const gridStart = this.menuWidth + 10;
+    this.gridStart = this.menuWidth + 10;
 
     for (let i = 0; i < cols; i++) {
       this.gameInfo.map[i] = [];
       for (let j = 0; j < rows; j++) {
-        const x = i * cellSize + gridStart + (cellSize / 2);
-        const y = j * cellSize + playerSlotHeight + (cellSize / 2);
+        const x = i * this.cellSize + this.gridStart + (this.cellSize / 2);
+        const y = j * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
-        let mapP = this.add.image(x, y, randomPiece).setDisplaySize(cellSize - 3, cellSize - 3); // Scale the image to fit the cell
+        let mapP = this.add.image(x, y, randomPiece).setDisplaySize(this.cellSize - 3, this.cellSize - 3); // Scale the image to fit the cell
         this.gameInfo.map[i][j] = {
           x: x,
           y: y,
@@ -159,18 +161,96 @@ const gameScene = new Phaser.Class({
 
     // Draw the grid lines on top of the images
     for (let i = 0; i <= cols; i++) {
-      graphics.moveTo(i * cellSize + gridStart, playerSlotHeight);
-      graphics.lineTo(i * cellSize + gridStart, cellSize * rows + playerSlotHeight);
+      graphics.moveTo(i * this.cellSize + this.gridStart, this.playerSlotHeight);
+      graphics.lineTo(i * this.cellSize + this.gridStart, this.cellSize * rows + this.playerSlotHeight);
     }
     for (let j = 0; j <= rows; j++) {
-      graphics.moveTo(gridStart, j * cellSize + playerSlotHeight);
-      graphics.lineTo(cellSize * cols + gridStart, j * cellSize + playerSlotHeight);
+      graphics.moveTo(this.gridStart, j * this.cellSize + this.playerSlotHeight);
+      graphics.lineTo(this.cellSize * cols + this.gridStart, j * this.cellSize + this.playerSlotHeight);
     }
 
     this.setStartMap();
     graphics.strokePath();
 
     this.updatePlayerInfo();
+  },
+
+  updateCharacterIcons: function () {
+    // Create a set to track unique locations
+    let uniqueLocations = new Set();
+
+    // Get the active player's characters
+    const activePlayerCharacters = this.gameInfo.players[this.gameInfo.activePlayerIndex].activeCharacters;
+
+    // Loop through each character and add their location to the set
+    activePlayerCharacters.forEach(character => {
+      // Assuming character.location holds an object with x and y
+      const locationKey = `${character.location.x},${character.location.y}`; // Create a unique key for the location
+      uniqueLocations.add(locationKey);
+    });
+
+    // Now, place an icon for each unique location
+    uniqueLocations.forEach(locationKey => {
+      const [x, y] = locationKey.split(',').map(Number);
+      const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
+      const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
+      let icon = this.add.image(xOnMap, yOnMap, 'characterLocation');
+      icon.setDisplaySize(50, 50); // Adjust size as needed
+      icon.setDepth(5);
+
+      // Make the icon interactive
+      icon.setInteractive();
+
+      // Add a click event listener to the icon
+      icon.on('pointerdown', () => {
+        this.showCharactersPopup(x, y);
+      });
+      this.gameInfo.activPlayereCharactersLocationIcons.push(icon); // Keep track of the icons for clearing later
+    });
+  },
+
+  showCharactersPopup: function (x,y) {
+    // Close any existing popups
+    this.closePopup();
+
+    console.log(x+":"+y)
+    // Create a new popup at the center of the game
+    const popupX = this.game.config.width / 2 + 120;
+    const popupY = this.game.config.height / 2 + 36;
+
+    // Create a new container for the popup elements
+    this.charactersPopup = this.add.container(popupX, popupY);
+
+    // Create the background for the popup
+    const background = this.add.rectangle(0, 0, 1000, 800, 0x000000);
+    background.setAlpha(0.8);
+    this.charactersPopup.add(background);
+
+    // Create a close button
+    const closeButton = this.add.text(485, -398, 'X', { fontSize: '20px', fill: '#ff0044' });
+    closeButton.setInteractive();
+    closeButton.on('pointerdown', () => {
+      // Close and remove the popup
+      this.closePopup();
+    });
+    this.charactersPopup.add(closeButton);
+
+    // Set the entire container to a higher depth so it appears on top
+    this.charactersPopup.setDepth(6);
+  },
+
+  closePopup: function () {
+    // Destroy the container and all its child elements
+    if (this.charactersPopup) {
+      this.charactersPopup.destroy();
+      this.charactersPopup = null;
+    }
+  },
+
+  clearCharacterLocationIcons: function () {
+    // Remove all character location icons from the map
+    this.gameInfo.activPlayereCharactersLocationIcons.forEach(icon => icon.destroy());
+    this.gameInfo.activPlayereCharactersLocationIcons = []; // Reset the array after clearing
   },
 
   updatePlayerInfo: function () {
@@ -201,15 +281,17 @@ const gameScene = new Phaser.Class({
     //Init Characters for 1st player
     this.initCharactersOptionsView(0);
 
-    this.conquerTerritory(1, 2, 4);
     this.addUnderBoss(1, 2, 4);
+    this.conquerTerritory(1, 2, 4);
+    this.updateCharacterIcons();
+
     this.initCharactersOptions(1)
     this.conquerTerritory(2, 5, 1);
     this.addUnderBoss(2, 5, 1);
     this.initCharactersOptions(2)
     this.conquerTerritory(3, 6, 4);
     this.addUnderBoss(3, 6, 4);
-    this.initCharactersOptions(3)
+    this.initCharactersOptions(3);
   },
 
   initCharactersOptionsView: function (playerIndex) {
@@ -263,7 +345,7 @@ const gameScene = new Phaser.Class({
     let foundCharToAdd = false;
     while (!foundCharToAdd) {
       const randomNumber = Math.floor(Math.random() * (this.charactersData.length)) + 0;
-      if((mapOfCurrentCharactersByNickNames[this.charactersData[randomNumber].nickname]) === undefined){
+      if ((mapOfCurrentCharactersByNickNames[this.charactersData[randomNumber].nickname]) === undefined) {
         this.gameInfo.players[playerIndex].availableCharacters[indexToRemove] = this.charactersData[randomNumber];
         foundCharToAdd = true;
       }
@@ -311,9 +393,12 @@ const gameScene = new Phaser.Class({
   },
 
   endTurn: function () {
-    if(this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering !== null){
+    if (this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering !== null) {
       this.deleteCharacterAndAddNewUniqeRandomCharacter();
     }
+
+    // Clear existing character location icons if any
+    this.clearCharacterLocationIcons();
 
     console.log('endTurn of player :' + this.gameInfo.activePlayerIndex);
     this.gameInfo.activePlayerIndex = (this.gameInfo.activePlayerIndex + 1) % 4; // Move to the next player
@@ -334,6 +419,8 @@ const gameScene = new Phaser.Class({
     this.clearCharactersOptionsView();
     this.updatePlayerIndicators(); // Update the visual indication for active player
     this.updatePlayerInfo(); // Update the player info display for the new active player
+
+    this.updateCharacterIcons();
   },
 
   updatePlayerIndicators: function () {
