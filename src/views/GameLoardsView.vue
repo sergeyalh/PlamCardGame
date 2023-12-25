@@ -20,15 +20,17 @@ const gameScene = new Phaser.Class({
       date: { year: 10, month: 1, week: 1 },
       map: [],
       players: [
-        { nickname: "Jacob", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] },
-        { nickname: "Serg", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] },
-        { nickname: "Izov", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] },
-        { nickname: "Elad", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [] }
+        { nickname: "Jacob", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
+        { nickname: "Serg", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
+        { nickname: "Izov", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null },
+        { nickname: "Elad", cash: 100, nextIncome: 0, activeCharacters: [], availableCharacters: [], nextTurnActions: {}, underControlPieces: [], pendingFiering: null, pendingHiring: null }
       ]
     };
   },
 
   preload: function () {
+    this.load.image('deleteIndicator', 'fierd.png');  // Load the deletion indicator image
+
     // Load images
     for (let i = 1; i <= 6; i++) {
       this.load.image('mapPiece' + i, 'mapPieces/map' + i + '.png');
@@ -225,6 +227,9 @@ const gameScene = new Phaser.Class({
   },
 
   clearCharactersOptionsView: function () {
+    if (this.deleteIcon) {
+      this.deleteIcon.destroy();
+    }
     for (let i = 0; i < 3; i++) {
       this.gameInfo.activePlayerCharactersOptions[i].image.destroy();
       this.gameInfo.activePlayerCharactersOptions[i].cost.destroy();
@@ -247,6 +252,25 @@ const gameScene = new Phaser.Class({
     }
     return Array.from(uniqueNumbers);
   },
+
+  deleteCharacterAndAddNewUniqeRandomCharacter: function () {
+    let playerIndex = this.gameInfo.activePlayerIndex;
+    let indexToRemove = this.gameInfo.players[playerIndex].pendingFiering;
+    let mapOfCurrentCharactersByNickNames = {};
+    for (let i = 0; i < 3; i++) {
+      mapOfCurrentCharactersByNickNames[this.gameInfo.players[playerIndex].availableCharacters[i].nickname] = i;
+    }
+    let foundCharToAdd = false;
+    while (!foundCharToAdd) {
+      const randomNumber = Math.floor(Math.random() * (this.charactersData.length)) + 0;
+      if((mapOfCurrentCharactersByNickNames[this.charactersData[randomNumber].nickname]) === undefined){
+        this.gameInfo.players[playerIndex].availableCharacters[indexToRemove] = this.charactersData[randomNumber];
+        foundCharToAdd = true;
+      }
+    }
+    this.gameInfo.players[playerIndex].pendingFiering = null;
+  },
+
   addUnderBoss: function (playerIndex, mapX, mapY) {
     // Add UnderBoss for each player
     let underBossClone = { ...this.underbossChar };
@@ -271,11 +295,26 @@ const gameScene = new Phaser.Class({
   },
 
   deleteCharacter: function (index) {
+    if (this.deleteIcon) {
+      this.deleteIcon.destroy();
+    }
+    const slotY = this.startYforChars + 50 + index * 120;
+    const panelY = 0 + 125;
+
+    // Add a transparent overlay or a deletion icon on the character's image
+    this.deleteIcon = this.add.image(panelY, slotY, 'deleteIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+    this.deleteIcon.setAlpha(0.3); // Make it semi-transparent
+    // character.deleteIcon = deleteIcon; // Store the reference for future use
     console.log('Delete character at index:', index);
-    // Add logic to delete and replace the character
+    this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering = index;
+
   },
 
   endTurn: function () {
+    if(this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering !== null){
+      this.deleteCharacterAndAddNewUniqeRandomCharacter();
+    }
+
     console.log('endTurn of player :' + this.gameInfo.activePlayerIndex);
     this.gameInfo.activePlayerIndex = (this.gameInfo.activePlayerIndex + 1) % 4; // Move to the next player
     if (((this.gameInfo.activePlayerIndex + 1) % 4) == 1) {
