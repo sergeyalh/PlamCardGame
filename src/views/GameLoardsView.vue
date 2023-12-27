@@ -31,9 +31,9 @@ const gameScene = new Phaser.Class({
 
   preload: function () {
     this.load.image('characterLocation', 'ocupid.png');
+    this.load.image('characterLocationUnderSiege', 'enemies.png');
     this.load.image('deleteIndicator', 'fierd.png');  // Load the deletion indicator image
 
-    // Load images
     for (let i = 1; i <= 6; i++) {
       this.load.image('mapPiece' + i, 'mapPieces/map' + i + '.png');
     }
@@ -55,16 +55,30 @@ const gameScene = new Phaser.Class({
     this.underbossChar = characters.underBoss;
     this.underbossChar.image = this.load.image(characters.underBoss.nickname, 'characters/' + characters.underBoss.imagePath);
 
-
     // After setting up all the loaders for the images, start the loading process
     this.load.once('complete', this.setupGame, this); // Setup the callback for when loading is complete
     this.load.start(); // Start the loader
+
+    this.menuWidth = 250;
+    this.menuHeight = this.game.config.height;
+    this.characterSlotHeight = 120;
+    this.panelHeight = 20; // Height for the bottom panel
+    this.characterImageHeight = this.characterSlotHeight - this.panelHeight; // Remaining height for the image
+    this.startYforChars = this.game.config.height - (this.characterSlotHeight * 3); // Position for the first character slot
+    this.playerSlotHeight = 70; // Height of the players section
+    this.playerOffsetX = 180; // Size of the grid cell
+    this.playersBufferFromMenu = 250;
+
+    // Grid values
+    this.cellSize = 150; // Size of the grid cell
+    this.battleGroungColums = 8; // Number of columns
+    this.battleGroungColumsRows = 6; // Update number of rows to 8
+    this.gridStart = this.menuWidth + 10;
   },
   setupGame: function () {
     // Create a menu panel
-    this.menuWidth = 250;
-    const menuHeight = this.game.config.height;
-    this.add.rectangle(this.menuWidth / 2, menuHeight / 2, this.menuWidth, menuHeight, 0x333333);
+
+    this.add.rectangle(this.menuWidth / 2, this.menuHeight / 2, this.menuWidth, this.menuHeight, 0x333333);
 
     // Add some menu items
     this.date = this.add.text(66, 10, this.gameInfo.date.year + 'K.' +
@@ -80,11 +94,6 @@ const gameScene = new Phaser.Class({
     // Add End Turn Button
     const endTurnButton = this.add.text(85, 580, 'End Turn', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
     endTurnButton.on('pointerdown', () => this.endTurn());
-
-    this.characterSlotHeight = 120;
-    this.panelHeight = 20; // Height for the bottom panel
-    this.characterImageHeight = this.characterSlotHeight - this.panelHeight; // Remaining height for the image
-    this.startYforChars = this.game.config.height - (this.characterSlotHeight * 3); // Position for the first character slot
 
     // Draw the character slots with images and interactive elements
     for (let i = 0; i < 3; i++) {
@@ -112,10 +121,6 @@ const gameScene = new Phaser.Class({
     }
 
     // Draw the player slots
-    this.playerSlotHeight = 70; // Height of the players section
-    this.playerOffsetX = 180; // Size of the grid cell
-    this.playersBufferFromMenu = 250;
-
     for (let i = 0; i < 4; i++) {
       // Positioning each player slot
       const slotX = (i * this.playerOffsetX) + this.menuWidth + this.playersBufferFromMenu + (this.playerOffsetX / 2);
@@ -137,14 +142,10 @@ const gameScene = new Phaser.Class({
 
     // Draw the grid
     const graphics = this.add.graphics({ lineStyle: { width: 1, color: 0xffffff } });
-    this.cellSize = 150; // Size of the grid cell
-    const cols = 8; // Number of columns
-    const rows = 6; // Update number of rows to 8
-    this.gridStart = this.menuWidth + 10;
 
-    for (let i = 0; i < cols; i++) {
+    for (let i = 0; i < this.battleGroungColums; i++) {
       this.gameInfo.map[i] = [];
-      for (let j = 0; j < rows; j++) {
+      for (let j = 0; j < this.battleGroungColumsRows; j++) {
         const x = i * this.cellSize + this.gridStart + (this.cellSize / 2);
         const y = j * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
@@ -161,13 +162,13 @@ const gameScene = new Phaser.Class({
     }
 
     // Draw the grid lines on top of the images
-    for (let i = 0; i <= cols; i++) {
+    for (let i = 0; i <= this.battleGroungColums; i++) {
       graphics.moveTo(i * this.cellSize + this.gridStart, this.playerSlotHeight);
-      graphics.lineTo(i * this.cellSize + this.gridStart, this.cellSize * rows + this.playerSlotHeight);
+      graphics.lineTo(i * this.cellSize + this.gridStart, this.cellSize * this.battleGroungColumsRows + this.playerSlotHeight);
     }
-    for (let j = 0; j <= rows; j++) {
+    for (let j = 0; j <= this.battleGroungColumsRows; j++) {
       graphics.moveTo(this.gridStart, j * this.cellSize + this.playerSlotHeight);
-      graphics.lineTo(this.cellSize * cols + this.gridStart, j * this.cellSize + this.playerSlotHeight);
+      graphics.lineTo(this.cellSize * this.battleGroungColums + this.gridStart, j * this.cellSize + this.playerSlotHeight);
     }
 
     this.setStartMap();
@@ -178,7 +179,7 @@ const gameScene = new Phaser.Class({
 
   updateCharacterIcons: function () {
     // Create a set to track unique locations
-    let uniqueLocations = new Set();
+    let locationsUnderControlAndCharactersCounter = {};
 
     // Get the active player's characters
     const activePlayerCharacters = this.gameInfo.players[this.gameInfo.activePlayerIndex].activeCharacters;
@@ -187,11 +188,15 @@ const gameScene = new Phaser.Class({
     Object.values(activePlayerCharacters).forEach(character => {
       // Assuming character.location holds an object with x and y
       const locationKey = `${character.location.x},${character.location.y}`; // Create a unique key for the location
-      uniqueLocations.add(locationKey);
+      if (!locationsUnderControlAndCharactersCounter[locationKey]){
+        locationsUnderControlAndCharactersCounter[locationKey] = 1;
+      } else {
+        locationsUnderControlAndCharactersCounter[locationKey] = +1;
+      }
     });
 
     // Now, place an icon for each unique location
-    uniqueLocations.forEach(locationKey => {
+    Object.keys(locationsUnderControlAndCharactersCounter).forEach(locationKey => {
       const [x, y] = locationKey.split(',').map(Number);
       const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
       const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
@@ -206,7 +211,16 @@ const gameScene = new Phaser.Class({
       icon.on('pointerdown', () => {
         this.showCharactersPopup(x, y);
       });
-      this.gameInfo.activPlayereCharactersLocationIcons.push(icon); // Keep track of the icons for clearing later
+
+      // Check if there are enemies on this piece of map
+      let iconEnemies = null;
+      if(this.gameInfo.map[x][y].charactersOnMapPiece.length > locationsUnderControlAndCharactersCounter[locationKey]){
+        iconEnemies = this.add.image(xOnMap, yOnMap, 'characterLocationUnderSiege');
+        iconEnemies.setDisplaySize(105, 105); // Adjust size as needed
+        iconEnemies.setDepth(5);
+      }
+     
+      this.gameInfo.activPlayereCharactersLocationIcons.push({icon:icon, enemies: iconEnemies}); // Keep track of the icons for clearing later
     });
   },
 
@@ -219,7 +233,7 @@ const gameScene = new Phaser.Class({
   createOverlay: function () {
     const overlay = this.add.rectangle(0, 0, this.game.config.width, this.game.config.height, 0x000000);
     overlay.setOrigin(0, 0); // Top-left corner
-    overlay.setAlpha(0.1); // Semi-transparent
+    overlay.setAlpha(0.2); // Semi-transparent
     overlay.setDepth(6); // Ensure it's below the popup but above other game elements
     overlay.setInteractive(); // Block clicks
     this.overlay = overlay;
@@ -347,7 +361,12 @@ const gameScene = new Phaser.Class({
 
   clearCharacterLocationIcons: function () {
     // Remove all character location icons from the map
-    this.gameInfo.activPlayereCharactersLocationIcons.forEach(icon => icon.destroy());
+    this.gameInfo.activPlayereCharactersLocationIcons.forEach(location => {
+      location.icon.destroy();
+      if (location.enemies){
+        location.enemies.destroy()
+      }
+    });
     this.gameInfo.activPlayereCharactersLocationIcons = []; // Reset the array after clearing
   },
 
