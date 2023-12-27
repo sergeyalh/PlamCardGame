@@ -33,6 +33,7 @@ const gameScene = new Phaser.Class({
     this.load.image('characterLocation', 'ocupid.png');
     this.load.image('characterLocationUnderSiege', 'enemies.png');
     this.load.image('deleteIndicator', 'fierd.png');  // Load the deletion indicator image
+    this.load.image('addIndicator', 'hierd.png');  // Load the add indicator image
 
     for (let i = 1; i <= 6; i++) {
       this.load.image('mapPiece' + i, 'mapPieces/map' + i + '.png');
@@ -188,7 +189,7 @@ const gameScene = new Phaser.Class({
     Object.values(activePlayerCharacters).forEach(character => {
       // Assuming character.location holds an object with x and y
       const locationKey = `${character.location.x},${character.location.y}`; // Create a unique key for the location
-      if (!locationsUnderControlAndCharactersCounter[locationKey]){
+      if (!locationsUnderControlAndCharactersCounter[locationKey]) {
         locationsUnderControlAndCharactersCounter[locationKey] = 1;
       } else {
         locationsUnderControlAndCharactersCounter[locationKey] = +1;
@@ -214,13 +215,13 @@ const gameScene = new Phaser.Class({
 
       // Check if there are enemies on this piece of map
       let iconEnemies = null;
-      if(this.gameInfo.map[x][y].charactersOnMapPiece.length > locationsUnderControlAndCharactersCounter[locationKey]){
+      if (this.gameInfo.map[x][y].charactersOnMapPiece.length > locationsUnderControlAndCharactersCounter[locationKey]) {
         iconEnemies = this.add.image(xOnMap, yOnMap, 'characterLocationUnderSiege');
         iconEnemies.setDisplaySize(105, 105); // Adjust size as needed
         iconEnemies.setDepth(5);
       }
-     
-      this.gameInfo.activPlayereCharactersLocationIcons.push({icon:icon, enemies: iconEnemies}); // Keep track of the icons for clearing later
+
+      this.gameInfo.activPlayereCharactersLocationIcons.push({ icon: icon, enemies: iconEnemies }); // Keep track of the icons for clearing later
     });
   },
 
@@ -363,7 +364,7 @@ const gameScene = new Phaser.Class({
     // Remove all character location icons from the map
     this.gameInfo.activPlayereCharactersLocationIcons.forEach(location => {
       location.icon.destroy();
-      if (location.enemies){
+      if (location.enemies) {
         location.enemies.destroy()
       }
     });
@@ -393,6 +394,7 @@ const gameScene = new Phaser.Class({
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(2, 1, 1);
     this.initCharactersOptions(0)
 
     //Init Characters for 1st player
@@ -493,24 +495,47 @@ const gameScene = new Phaser.Class({
 
   // Methods to handle character addition and deletion
   addCharacter: function (index) {
-    console.log('Add character at index:', index);
-    // Add logic to add the character
+    if (index !== this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring) {
+      this.clearAddOrDeleteCharacteIcons();
+      const slotY = this.startYforChars + 50 + index * 120;
+      const panelY = 0 + 125;
+
+      // Add a transparent overlay or a deletion icon on the character's image
+      this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+      this.addIcon.setAlpha(0.3); // Make it semi-transparent
+      // character.deleteIcon = deleteIcon; // Store the reference for future use
+      this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = index;
+    } else {
+      this.clearAddOrDeleteCharacteIcons();
+    }
+  },
+
+  clearAddOrDeleteCharacteIcons: function (){
+    if (this.deleteIcon) {
+      this.deleteIcon.destroy();
+      this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering = null;
+    }
+
+    if (this.addIcon){
+      this.addIcon.destroy();
+      this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = null;
+    }
   },
 
   deleteCharacter: function (index) {
-    if (this.deleteIcon) {
-      this.deleteIcon.destroy();
+    if (index !== this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering) {
+      this.clearAddOrDeleteCharacteIcons();
+      const slotY = this.startYforChars + 50 + index * 120;
+      const panelY = 0 + 125;
+
+      // Add a transparent overlay or a deletion icon on the character's image
+      this.deleteIcon = this.add.image(panelY, slotY, 'deleteIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+      this.deleteIcon.setAlpha(0.3); // Make it semi-transparent
+      // character.deleteIcon = deleteIcon; // Store the reference for future use
+      this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering = index;
+    } else {
+      this.clearAddOrDeleteCharacteIcons();
     }
-    const slotY = this.startYforChars + 50 + index * 120;
-    const panelY = 0 + 125;
-
-    // Add a transparent overlay or a deletion icon on the character's image
-    this.deleteIcon = this.add.image(panelY, slotY, 'deleteIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
-    this.deleteIcon.setAlpha(0.3); // Make it semi-transparent
-    // character.deleteIcon = deleteIcon; // Store the reference for future use
-    console.log('Delete character at index:', index);
-    this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering = index;
-
   },
 
   endTurn: function () {
