@@ -175,9 +175,8 @@ const gameScene = new Phaser.Class({
     }
 
     this.setStartMap();
-    graphics.strokePath();
-
     this.updatePlayerInfo();
+    graphics.strokePath();
   },
 
   updateCharacterIcons: function () {
@@ -233,8 +232,8 @@ const gameScene = new Phaser.Class({
     return characters || [];
   },
 
-  createOverlay: function () {
-    const overlay = this.add.rectangle(0, 0, this.game.config.width, this.game.config.height, 0x000000);
+  createOverlay: function (startX,startY,width,height) {
+    const overlay = this.add.rectangle(startX, startY, width, height, 0x000000);
     overlay.setOrigin(0, 0); // Top-left corner
     overlay.setAlpha(0.2); // Semi-transparent
     overlay.setDepth(6); // Ensure it's below the popup but above other game elements
@@ -247,7 +246,7 @@ const gameScene = new Phaser.Class({
     this.closePopup();
 
     // Create an overlay
-    this.createOverlay();
+    this.createOverlay(0,0,this.game.config.width,this.game.config.height);
 
     // Create a new popup at the center of the game
     const popupX = this.game.config.width / 2 + 125;
@@ -356,6 +355,10 @@ const gameScene = new Phaser.Class({
     }
 
     // Also destroy the overlay
+    this.removeOverLay();
+  },
+
+  removeOverLay: function (){
     if (this.overlay) {
       this.overlay.destroy();
       this.overlay = null;
@@ -400,12 +403,7 @@ const gameScene = new Phaser.Class({
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
-    // TODO remove
-    //this.addUnderBoss(2, 1, 1);
     this.initCharactersOptions(0)
-
-    //Init Characters for 1st player
-    this.initCharactersOptionsView(0);
 
     this.addUnderBoss(1, 4, 2);
     this.conquerTerritory(1, 4, 2);
@@ -431,14 +429,10 @@ const gameScene = new Phaser.Class({
 
       // Cost Display in the panel
       this.gameInfo.activePlayerCharactersOptions[i].cost = this.add.text(20, panelY - 10, 'Cost: [' + this.gameInfo.players[playerIndex].availableCharacters[i].cost + ']', { font: '16px Arial', fill: '#ffffff' });
-
     }
   },
 
   clearCharactersOptionsView: function () {
-    if (this.deleteIcon) {
-      this.deleteIcon.destroy();
-    }
     for (let i = 0; i < 3; i++) {
       this.gameInfo.activePlayerCharactersOptions[i].image.destroy();
       this.gameInfo.activePlayerCharactersOptions[i].cost.destroy();
@@ -500,6 +494,8 @@ const gameScene = new Phaser.Class({
           return Date.now().toString(36) + Math.random().toString(36).substr(2);
         }
         charToAddInfo.id = uid;
+        this.gameInfo.activePlayerCharactersOptions[charToAdd.index].image.destroy();
+        this.gameInfo.activePlayerCharactersOptions[charToAdd.index].cost.destroy();
         this.gameInfo.players[playerIndex].activeCharacters[uid()] = charToAddInfo;
         this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: charToAddInfo });
         // Remove the cost from players Cash
@@ -543,6 +539,8 @@ const gameScene = new Phaser.Class({
     if (this.incommingIcon){
       this.incommingIcon.destroy();
     }
+
+    this.removeOverLay();
 
     // Add a transparent overlay or a deletion icon on the character's image
     this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
@@ -606,15 +604,20 @@ const gameScene = new Phaser.Class({
       const panelY = 0 + 125;
       // Check if there is enough availabe cash for the selected character
       if (this.gameInfo.players[playerIndex].availableCharacters[index].cost <= this.gameInfo.players[playerIndex].cash) {
+        this.createOverlay(0,0, this.menuWidth, this.game.config.height);
+
         // Display the message or button
-        let promptText = this.add.text(this.game.config.width / 2, 50, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff' });
+        let promptText = this.add.text(panelY, slotY, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff', wordWrap: { width: this.menuWidth} });
         promptText.setOrigin(0.5, 0.5); // Center the text
+        promptText.setDepth(7);
 
         // If you want a cancel button as well, add it here
-        let cancelButton = this.add.text(this.game.config.width / 2, 100, 'Cancel', { fontSize: '20px', fill: '#ff0000' });
+        let cancelButton = this.add.text(panelY - 35, slotY + 30, 'Cancel', { fontSize: '20px', fill: '#ff0000' });
         cancelButton.setInteractive();
+        cancelButton.setDepth(7);
         cancelButton.on('pointerdown', () => {
           this.cancelHiringProcess(promptText, cancelButton);
+          this.removeOverLay();
         });
 
         // TODO
