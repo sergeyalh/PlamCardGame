@@ -199,7 +199,7 @@ const gameScene = new Phaser.Class({
 
     // Now, place an icon for each unique location
     Object.keys(locationsUnderControlAndCharactersCounter).forEach(locationKey => {
-      const [y,x] = locationKey.split(',').map(Number);
+      const [y, x] = locationKey.split(',').map(Number);
       const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
       const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
       let icon = this.add.image(xOnMap, yOnMap, 'characterLocation');
@@ -211,7 +211,7 @@ const gameScene = new Phaser.Class({
 
       // Add a click event listener to the icon
       icon.on('pointerdown', () => {
-        this.showCharactersPopup(x, y);
+        this.showMapPopup(x, y);
       });
 
       // Check if there are enemies on this piece of map
@@ -232,7 +232,7 @@ const gameScene = new Phaser.Class({
     return characters || [];
   },
 
-  createOverlay: function (startX,startY,width,height) {
+  createOverlay: function (startX, startY, width, height) {
     const overlay = this.add.rectangle(startX, startY, width, height, 0x000000);
     overlay.setOrigin(0, 0); // Top-left corner
     overlay.setAlpha(0.2); // Semi-transparent
@@ -241,33 +241,71 @@ const gameScene = new Phaser.Class({
     this.overlay = overlay;
   },
 
-  showCharactersPopup: function (x, y) {
+  showCharacterPopup: function (character) {
+    // Create a container for the popup
+    this.characterInfoPopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+
+    // Create a semi-transparent background
+    let bg = this.add.rectangle(0, 0, 400, 600, 0x000000);
+    bg.setAlpha(0.8);
+    this.characterInfoPopup.add(bg);
+
+    // Add character image
+    let charImage = this.add.image(0, -200, character.imagePath).setDisplaySize(150, 150);
+    this.characterInfoPopup.add(charImage);
+
+    // Add character information
+    let yOffset = -100; // Start position for character information text
+    Object.keys(character).forEach(key => {
+      // Skip imagePath to not display it as text
+      if (key !== 'imagePath') {
+        let text = `${key}: ${character[key]}`;
+        let infoText = this.add.text(-180, yOffset, text, { fontSize: '16px', fill: '#ffffff' });
+        this.characterInfoPopup.add(infoText);
+        yOffset += 20; // Increment y position for next piece of information
+      }
+    });
+
+    // Add a close button or area
+    let closeButton = this.add.text(150, -280, 'Close', { fontSize: '20px', fill: '#ff0000' });
+    closeButton.setInteractive();
+    closeButton.on('pointerdown', () => {
+      this.characterInfoPopup.destroy(); // Destroy the popup when close is clicked
+    });
+    this.characterInfoPopup.add(closeButton);
+
+    // Centering the popup container
+    this.characterInfoPopup.setSize(400, 600);
+    this.characterInfoPopup.setDepth(10); // Ensure the popup is above other game elements
+  },
+
+  showMapPopup: function (x, y) {
     // Close any existing popups
-    this.closePopup();
+    this.closeMapPopup();
 
     // Create an overlay
-    this.createOverlay(0,0,this.game.config.width,this.game.config.height);
+    this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
 
     // Create a new popup at the center of the game
     const popupX = this.game.config.width / 2 + 125;
     const popupY = this.game.config.height / 2 + 36;
 
     // Create a new container for the popup elements
-    this.charactersPopup = this.add.container(popupX, popupY);
+    this.mapPopup = this.add.container(popupX, popupY);
 
     // Create the background for the popup
     const background = this.add.rectangle(0, 0, 1170, 880, 0x000000);
     background.setAlpha(0.7);
-    this.charactersPopup.add(background);
+    this.mapPopup.add(background);
 
     // Create a close button
     const closeButton = this.add.text(570, -438, 'X', { fontSize: '20px', fill: '#ff0044' });
     closeButton.setInteractive();
     closeButton.on('pointerdown', () => {
       // Close and remove the popup
-      this.closePopup();
+      this.closeMapPopup();
     });
-    this.charactersPopup.add(closeButton);
+    this.mapPopup.add(closeButton);
 
     const allCharactersOnThisPiece = this.getCharactersAtLocation(x, y);
     const yInitialOffSet = -360; // Start a bit below the top of the popup
@@ -285,7 +323,12 @@ const gameScene = new Phaser.Class({
         // Add the character's image to the popup
         let charImage = this.add.image(xOffset + 110, yOffset, element.character.nickname); // use element.character.imagePath or similar
         charImage.setDisplaySize(220, 90); // Adjust size as needed
-        this.charactersPopup.add(charImage);
+        charImage.setInteractive();
+
+        charImage.on('pointerdown', () => {
+          this.showCharacterPopup(element.character);
+        });
+        this.mapPopup.add(charImage);
 
         // Draw a border around the character's image
         let borderWidth = 2; // Width of the border
@@ -297,11 +340,11 @@ const gameScene = new Phaser.Class({
           charImage.displayWidth + borderWidth,
           charImage.displayHeight + borderWidth
         );
-        this.charactersPopup.add(border); // Add the border to the popup
+        this.mapPopup.add(border); // Add the border to the popup
 
         // Add the character's nickname text on top of the image
         let playerText = this.add.text(xOffset, yOffset + 30, element.character.nickname, { fontSize: '16px', fill: '#ffffff' });
-        this.charactersPopup.add(playerText);
+        this.mapPopup.add(playerText);
 
         // Check if we need to move to the next column
         if (characterCount % charactersPerColumn === 0) {
@@ -315,7 +358,14 @@ const gameScene = new Phaser.Class({
         // Add the character's image to the popup
         let charImage = this.add.image(xEnemyOffset + 110, yEnempyOffset, element.character.nickname); // use element.character.imagePath or similar
         charImage.setDisplaySize(220, 90); // Adjust size as needed
-        this.charactersPopup.add(charImage);
+        charImage.setInteractive();
+
+        charImage.on('pointerdown', () => {
+          this.showCharacterPopup(element.character);
+        });
+
+
+        this.mapPopup.add(charImage);
 
         // Draw a border around the character's image
         let borderWidth = 2; // Width of the border
@@ -327,11 +377,11 @@ const gameScene = new Phaser.Class({
           charImage.displayWidth + borderWidth,
           charImage.displayHeight + borderWidth
         );
-        this.charactersPopup.add(border); // Add the border to the popup
+        this.mapPopup.add(border); // Add the border to the popup
 
         // Add the character's nickname text on top of the image
         let playerText = this.add.text(xEnemyOffset, yEnempyOffset + 30, element.character.nickname, { fontSize: '16px', fill: '#ffffff' });
-        this.charactersPopup.add(playerText);
+        this.mapPopup.add(playerText);
 
         // Check if we need to move to the next column
         if (enemyCharacterCount % charactersPerColumn === 0) {
@@ -344,21 +394,21 @@ const gameScene = new Phaser.Class({
     });
 
     // Set the entire container to a higher depth so it appears on top
-    this.charactersPopup.setDepth(7);
+    this.mapPopup.setDepth(7);
   },
 
-  closePopup: function () {
+  closeMapPopup: function () {
     // Destroy the container and all its child elements
-    if (this.charactersPopup) {
-      this.charactersPopup.destroy();
-      this.charactersPopup = null;
+    if (this.mapPopup) {
+      this.mapPopup.destroy();
+      this.mapPopup = null;
     }
 
     // Also destroy the overlay
     this.removeOverLay();
   },
 
-  removeOverLay: function (){
+  removeOverLay: function () {
     if (this.overlay) {
       this.overlay.destroy();
       this.overlay = null;
@@ -374,7 +424,7 @@ const gameScene = new Phaser.Class({
       }
     });
 
-    if (this.incommingIcon){
+    if (this.incommingIcon) {
       this.incommingIcon.destroy();
     }
     this.gameInfo.activPlayereCharactersLocationIcons = []; // Reset the array after clearing
@@ -426,6 +476,11 @@ const gameScene = new Phaser.Class({
       // Add character image
       this.gameInfo.activePlayerCharactersOptions[i] = {};
       this.gameInfo.activePlayerCharactersOptions[i].image = this.add.image(this.menuWidth / 2, slotY + (this.characterImageHeight / 2), this.gameInfo.players[playerIndex].availableCharacters[i].nickname).setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+      this.gameInfo.activePlayerCharactersOptions[i].image.setInteractive();
+
+      this.gameInfo.activePlayerCharactersOptions[i].image.on('pointerdown', () => {
+        this.showCharacterPopup(this.gameInfo.players[playerIndex].availableCharacters[i]);
+      });
 
       // Cost Display in the panel
       this.gameInfo.activePlayerCharactersOptions[i].cost = this.add.text(20, panelY - 10, 'Cost: [' + this.gameInfo.players[playerIndex].availableCharacters[i].cost + ']', { font: '16px Arial', fill: '#ffffff' });
@@ -530,17 +585,15 @@ const gameScene = new Phaser.Class({
     this.gameInfo.players[playerIndex].underControlPieces.push({ x: mapX, y: mapY });
   },
 
-  handleMapPieceSelecetionForAdding: function (slotY,panelY, index,playerIndex ,cancelButton, promptText, y, x) {
-    if (this.addIcon){
+  handleMapPieceSelecetionForAdding: function (slotY, panelY, index, playerIndex, cancelButton, promptText, y, x) {
+    if (this.addIcon) {
       this.addIcon.destroy();
       this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = null;
     }
 
-    if (this.incommingIcon){
+    if (this.incommingIcon) {
       this.incommingIcon.destroy();
     }
-
-    this.removeOverLay();
 
     // Add a transparent overlay or a deletion icon on the character's image
     this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
@@ -569,7 +622,7 @@ const gameScene = new Phaser.Class({
           console.log(x + ":" + y + " owned by player:" + this.gameInfo.map[y][x].owner);
 
           if (this.gameInfo.map[y][x].owner === this.gameInfo.activePlayerIndex) {
-            this.handleMapPieceSelecetionForAdding(slotY,panelY, index,this.gameInfo.activePlayerIndex ,cancelButton, promptText,y,x);
+            this.handleMapPieceSelecetionForAdding(slotY, panelY, index, this.gameInfo.activePlayerIndex, cancelButton, promptText, y, x);
           }
         });
       });
@@ -580,6 +633,7 @@ const gameScene = new Phaser.Class({
     // Existing cleanup code...
     promptText.destroy();
     cancelButton.destroy();
+    this.removeOverLay();
 
     // Reset the map's interactive state
     this.makeMapNonInteractive();
@@ -604,10 +658,10 @@ const gameScene = new Phaser.Class({
       const panelY = 0 + 125;
       // Check if there is enough availabe cash for the selected character
       if (this.gameInfo.players[playerIndex].availableCharacters[index].cost <= this.gameInfo.players[playerIndex].cash) {
-        this.createOverlay(0,0, this.menuWidth, this.game.config.height);
+        this.createOverlay(0, 0, this.menuWidth, this.game.config.height);
 
         // Display the message or button
-        let promptText = this.add.text(panelY, slotY, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff', wordWrap: { width: this.menuWidth} });
+        let promptText = this.add.text(panelY, slotY, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff', wordWrap: { width: this.menuWidth } });
         promptText.setOrigin(0.5, 0.5); // Center the text
         promptText.setDepth(7);
 
@@ -651,7 +705,7 @@ const gameScene = new Phaser.Class({
       this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = null;
     }
 
-    if (this.incommingIcon){
+    if (this.incommingIcon) {
       this.incommingIcon.destroy();
     }
   },
