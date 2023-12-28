@@ -32,6 +32,7 @@ const gameScene = new Phaser.Class({
   preload: function () {
     this.load.image('characterLocation', 'ocupid.png');
     this.load.image('characterLocationUnderSiege', 'enemies.png');
+    this.load.image('noCash', 'noCash.png');
     this.load.image('deleteIndicator', 'fierd.png');  // Load the deletion indicator image
     this.load.image('addIndicator', 'hierd.png');  // Load the add indicator image
 
@@ -144,11 +145,11 @@ const gameScene = new Phaser.Class({
     // Draw the grid
     const graphics = this.add.graphics({ lineStyle: { width: 1, color: 0xffffff } });
 
-    for (let i = 0; i < this.battleGroungColums; i++) {
+    for (let i = 0; i < this.battleGroungColumsRows; i++) {
       this.gameInfo.map[i] = [];
-      for (let j = 0; j < this.battleGroungColumsRows; j++) {
-        const x = i * this.cellSize + this.gridStart + (this.cellSize / 2);
-        const y = j * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
+      for (let j = 0; j < this.battleGroungColums; j++) {
+        const x = j * this.cellSize + this.gridStart + (this.cellSize / 2);
+        const y = i * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
         let mapP = this.add.image(x, y, randomPiece).setDisplaySize(this.cellSize - 3, this.cellSize - 3); // Scale the image to fit the cell
         this.gameInfo.map[i][j] = {
@@ -215,7 +216,7 @@ const gameScene = new Phaser.Class({
 
       // Check if there are enemies on this piece of map
       let iconEnemies = null;
-      if (this.gameInfo.map[x][y].charactersOnMapPiece.length > locationsUnderControlAndCharactersCounter[locationKey]) {
+      if (this.gameInfo.map[y][x].charactersOnMapPiece.length > locationsUnderControlAndCharactersCounter[locationKey]) {
         iconEnemies = this.add.image(xOnMap, yOnMap, 'characterLocationUnderSiege');
         iconEnemies.setDisplaySize(105, 105); // Adjust size as needed
         iconEnemies.setDepth(5);
@@ -227,7 +228,7 @@ const gameScene = new Phaser.Class({
 
   getCharactersAtLocation: function (x, y) {
     // Assuming you have a 2D array for the map and each cell holds character information
-    let characters = this.gameInfo.map[x][y].charactersOnMapPiece;
+    let characters = this.gameInfo.map[y][x].charactersOnMapPiece;
     return characters || [];
   },
 
@@ -394,22 +395,24 @@ const gameScene = new Phaser.Class({
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
+    // TODO remove
     this.addUnderBoss(2, 1, 1);
     this.initCharactersOptions(0)
 
     //Init Characters for 1st player
     this.initCharactersOptionsView(0);
 
-    this.addUnderBoss(1, 2, 4);
-    this.conquerTerritory(1, 2, 4);
+    this.addUnderBoss(1, 4, 2);
+    this.conquerTerritory(1, 4, 2);
     this.updateCharacterIcons();
 
     this.initCharactersOptions(1)
-    this.conquerTerritory(2, 5, 1);
-    this.addUnderBoss(2, 5, 1);
+    this.conquerTerritory(2, 1, 5);
+    this.addUnderBoss(2, 1, 5);
     this.initCharactersOptions(2)
-    this.conquerTerritory(3, 6, 4);
-    this.addUnderBoss(3, 6, 4);
+
+    this.conquerTerritory(3, 4, 6);
+    this.addUnderBoss(3, 4, 6);
     this.initCharactersOptions(3);
   },
 
@@ -472,7 +475,40 @@ const gameScene = new Phaser.Class({
     this.gameInfo.players[playerIndex].pendingFiering = null;
   },
 
-  addUnderBoss: function (playerIndex, mapX, mapY) {
+  addCharacterAndAddNewUniqeRandomCharacter: function () {
+    let playerIndex = this.gameInfo.activePlayerIndex;
+    let charToAdd = this.gameInfo.players[playerIndex].pendingHiring;
+    let mapOfCurrentCharactersByNickNames = {};
+    for (let i = 0; i < 3; i++) {
+      mapOfCurrentCharactersByNickNames[this.gameInfo.players[playerIndex].availableCharacters[i].nickname] = i;
+    }
+    let foundCharToAdd = false;
+    while (!foundCharToAdd) {
+      const randomNumber = Math.floor(Math.random() * (this.charactersData.length)) + 0;
+      if ((mapOfCurrentCharactersByNickNames[this.charactersData[randomNumber].nickname]) === undefined) {
+        // Add to Map And Add to th player
+        let charToAddInfo = { ...this.gameInfo.players[playerIndex].availableCharacters[charToAdd.index] };
+        let mapX = charToAdd.selectedX;
+        let mapY = charToAdd.selectedY;
+        charToAddInfo.location = { x: mapX, y: mapY };
+        const uid = function () {
+          return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        charToAddInfo.id = uid;
+        this.gameInfo.players[playerIndex].activeCharacters[uid] = charToAddInfo;
+        this.gameInfo.map[mapX][mapY].charactersOnMapPiece.push({ player: playerIndex, character: charToAddInfo });
+        // Remove the cost from players Cash
+        this.gameInfo.players[playerIndex].cash -= charToAddInfo.cost;
+        console.log(charToAddInfo.cost);
+        this.gameInfo.players[playerIndex].availableCharacters[charToAdd.index] = this.charactersData[randomNumber];
+        foundCharToAdd = true;
+      }
+    }
+
+    this.gameInfo.players[playerIndex].pendingHiring = null;
+  },
+
+  addUnderBoss: function (playerIndex, mapY, mapX) {
     // Add UnderBoss for each player
     let underBossClone = { ...this.underbossChar };
     underBossClone.location = { x: mapX, y: mapY };
@@ -481,42 +517,110 @@ const gameScene = new Phaser.Class({
     }
     underBossClone.id = uid;
     this.gameInfo.players[playerIndex].activeCharacters[uid] = underBossClone;
-    this.gameInfo.map[mapX][mapY].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
+    this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
 
   },
-  conquerTerritory: function (playerIndex, mapX, mapY) {
-    let mapPiece = this.gameInfo.map[mapX][mapY];
+  conquerTerritory: function (playerIndex, mapY, mapX) {
+    let mapPiece = this.gameInfo.map[mapY][mapX];
     let color = this.gameInfo.colors[playerIndex];
-    this.gameInfo.map[mapX][mapY].color = color;
-    this.gameInfo.map[mapX][mapY].owner = playerIndex;
+    mapPiece.color = color;
+    mapPiece.owner = playerIndex;
     this.colorArea(mapPiece.x, mapPiece.y, color, 0.4, 150, 150);
     this.gameInfo.players[playerIndex].underControlPieces.push({ x: mapX, y: mapY });
   },
 
+  handleMapPieceSelecetionForAdding: function (slotY,panelY, index,playerIndex ,cancelButton, promptText) {
+    // Add a transparent overlay or a deletion icon on the character's image
+    this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+    this.addIcon.setAlpha(0.3); // Make it semi-transparent
+    // character.deleteIcon = deleteIcon; // Store the reference for future use
+    this.gameInfo.players[playerIndex].pendingHiring = { index, selectedX: 1, selectedY: 1 };
+    // Hide or destroy the prompt and cancel button after selection
+    this.cancelHiringProcess(promptText, cancelButton);
+  },
+
+  makeMapInteractiveForCharacterLocation: function (slotY, panelY, index, playerIndex, cancelButton, promptText) {
+    // Iterate over each cell or area in your map
+    this.gameInfo.map.forEach((row, y) => {
+      row.forEach((cell, x) => {
+        // Assuming each cell has a sprite or image representing it
+        cell.photo.setInteractive();
+        cell.photo.on('pointerdown', () => {
+          console.log(x + ":" + y + " owned by player:" + this.gameInfo.map[y][x].owner);
+
+          if (this.gameInfo.map[y][x].owner === playerIndex) {
+            this.handleMapPieceSelecetionForAdding(slotY,panelY, index,playerIndex ,cancelButton, promptText);
+          }
+        });
+      });
+    });
+  },
+
+  cancelHiringProcess: function (promptText, cancelButton) {
+    // Existing cleanup code...
+    promptText.destroy();
+    cancelButton.destroy();
+
+    // Reset the map's interactive state
+    this.makeMapNonInteractive();
+  },
+
+  makeMapNonInteractive: function () {
+    // Assuming this.gameInfo.map is a 2D array of cell objects
+    this.gameInfo.map.forEach(row => {
+      row.forEach(cell => {
+        // Disable interactivity for each cell
+        cell.photo.disableInteractive();
+      });
+    });
+  },
+
   // Methods to handle character addition and deletion
   addCharacter: function (index) {
-    if (index !== this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring) {
+    const playerIndex = this.gameInfo.activePlayerIndex;
+    if (!this.gameInfo.players[playerIndex].pendingHiring || index !== this.gameInfo.players[playerIndex].pendingHiring.index) {
       this.clearAddOrDeleteCharacteIcons();
       const slotY = this.startYforChars + 50 + index * 120;
       const panelY = 0 + 125;
+      // Check if there is enough availabe cash for the selected character
+      if (this.gameInfo.players[playerIndex].availableCharacters[index].cost <= this.gameInfo.players[playerIndex].cash) {
+        // Display the message or button
+        let promptText = this.add.text(this.game.config.width / 2, 50, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff' });
+        promptText.setOrigin(0.5, 0.5); // Center the text
 
-      // Add a transparent overlay or a deletion icon on the character's image
-      this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
-      this.addIcon.setAlpha(0.3); // Make it semi-transparent
-      // character.deleteIcon = deleteIcon; // Store the reference for future use
-      this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = index;
+        // If you want a cancel button as well, add it here
+        let cancelButton = this.add.text(this.game.config.width / 2, 100, 'Cancel', { fontSize: '20px', fill: '#ff0000' });
+        cancelButton.setInteractive();
+        cancelButton.on('pointerdown', () => {
+          this.cancelHiringProcess(promptText, cancelButton);
+        });
+
+        // Make the map interactive for selection
+        //this.makeMapInteractiveForCharacterLocation(slotY, panelY, index, playerIndex, cancelButton, promptText);
+
+      } else {
+        let insufficientFundsImage = this.add.image(panelY, slotY, 'noCash');
+        insufficientFundsImage.setDisplaySize(this.menuWidth - 3, this.characterImageHeight); // Adjust the size as needed
+        insufficientFundsImage.setAlpha(0.6)
+        // Timer to remove the image after 3 seconds
+        this.time.delayedCall(3000, () => {
+          insufficientFundsImage.destroy();
+        });
+      }
+
     } else {
       this.clearAddOrDeleteCharacteIcons();
     }
   },
 
-  clearAddOrDeleteCharacteIcons: function (){
+  clearAddOrDeleteCharacteIcons: function () {
     if (this.deleteIcon) {
       this.deleteIcon.destroy();
       this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering = null;
+      this.deleteIcon = null;
     }
 
-    if (this.addIcon){
+    if (this.addIcon) {
       this.addIcon.destroy();
       this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = null;
     }
@@ -541,6 +645,8 @@ const gameScene = new Phaser.Class({
   endTurn: function () {
     if (this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering !== null) {
       this.deleteCharacterAndAddNewUniqeRandomCharacter();
+    } else if (this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring !== null) {
+      this.addCharacterAndAddNewUniqeRandomCharacter();
     }
 
     // Clear existing character location icons if any
