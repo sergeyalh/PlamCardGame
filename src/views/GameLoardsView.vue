@@ -276,7 +276,7 @@ const gameScene = new Phaser.Class({
     descriptiontextBlock.setOrigin(0.5, 0);
     this.characterInfoPopup.add(descriptiontextBlock);
 
-    const excludeKeys = ["description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
+    const excludeKeys = ["Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
     Object.keys(character).forEach(key => {
       // Skip imagePath to not display it as text
 
@@ -298,6 +298,24 @@ const gameScene = new Phaser.Class({
       this.removeOverLay(overLay);
     });
     this.characterInfoPopup.add(closeButton);
+
+    let characterLevel = character['Level'];
+    if (characterLevel) {
+      let levelText = `LVL:` + characterLevel;
+      let levelTextBlock = this.add.text(100, -40, levelText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+      levelTextBlock.setOrigin(0.5, 0);
+      this.characterInfoPopup.add(levelTextBlock);
+    }
+
+    let characterXP = character['XP'];
+    if (characterXP || characterXP == 0) {
+      let xpText = `XP:` + characterLevel;
+      let xpTextBlock = this.add.text(100, -20, xpText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+      xpTextBlock.setOrigin(0.5, 0);
+      this.characterInfoPopup.add(xpTextBlock);
+    }
+   
+    this.characterInfoPopup.add(descriptiontextBlock);
 
     // Centering the popup container
     this.characterInfoPopup.setSize(400, 600);
@@ -576,6 +594,8 @@ const gameScene = new Phaser.Class({
         charToAddInfo.location = { x: mapX, y: mapY };
         const uid = this.createUid();
         charToAddInfo.id = uid;
+        charToAddInfo.XP = 0;
+        charToAddInfo.Level = 1;
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].image.destroy();
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].cost.destroy();
         this.gameInfo.players[playerIndex].activeCharacters[uid] = charToAddInfo;
@@ -601,6 +621,8 @@ const gameScene = new Phaser.Class({
     underBossClone.location = { x: mapX, y: mapY };
     const uid = this.createUid();
     underBossClone.id = uid;
+    underBossClone.XP = 0;
+    underBossClone.Level = 1;
     this.gameInfo.players[playerIndex].activeCharacters[uid] = underBossClone;
     this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
 
