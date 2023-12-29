@@ -614,7 +614,7 @@ const gameScene = new Phaser.Class({
     this.gameInfo.players[playerIndex].underControlPieces.push({ x: mapX, y: mapY });
   },
 
-  handleMapPieceSelecetionForAdding: function (slotY, panelY, index, playerIndex, cancelButton, promptText, y, x) {
+  handleMapPieceSelecetionForAdding: function (slotY, panelY, index, playerIndex, cancelButton, promptText, y, x, overLay) {
     if (this.addIcon) {
       this.addIcon.destroy();
       this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring = null;
@@ -638,10 +638,10 @@ const gameScene = new Phaser.Class({
     this.incommingIcon.setDepth(5);
 
     // Hide or destroy the prompt and cancel button after selection
-    this.cancelHiringProcess(promptText, cancelButton);
+    this.cancelHiringProcess(promptText, cancelButton, overLay);
   },
 
-  makeMapInteractiveForCharacterLocation: function (slotY, panelY, index, cancelButton, promptText) {
+  makeMapInteractiveForCharacterLocation: function (slotY, panelY, index, cancelButton, promptText, overLay) {
     // Iterate over each cell or area in your map
     this.gameInfo.map.forEach((row, y) => {
       row.forEach((cell, x) => {
@@ -651,18 +651,18 @@ const gameScene = new Phaser.Class({
           console.log(x + ":" + y + " owned by player:" + this.gameInfo.map[y][x].owner);
 
           if (this.gameInfo.map[y][x].owner === this.gameInfo.activePlayerIndex) {
-            this.handleMapPieceSelecetionForAdding(slotY, panelY, index, this.gameInfo.activePlayerIndex, cancelButton, promptText, y, x);
+            this.handleMapPieceSelecetionForAdding(slotY, panelY, index, this.gameInfo.activePlayerIndex, cancelButton, promptText, y, x, overLay);
           }
         });
       });
     });
   },
 
-  cancelHiringProcess: function (promptText, cancelButton) {
+  cancelHiringProcess: function (promptText, cancelButton, overLay) {
     // Existing cleanup code...
     promptText.destroy();
     cancelButton.destroy();
-    this.removeOverLay();
+    this.removeOverLay(overLay);
 
     // Reset the map's interactive state
     this.makeMapNonInteractive();
@@ -705,7 +705,7 @@ const gameScene = new Phaser.Class({
 
         // TODO
         // Make the map interactive for selection
-        this.makeMapInteractiveForCharacterLocation(slotY, panelY, index, cancelButton, promptText);
+        this.makeMapInteractiveForCharacterLocation(slotY, panelY, index, cancelButton, promptText, overLay);
 
       } else {
         let insufficientFundsImage = this.add.image(panelY, slotY, 'noCash');
