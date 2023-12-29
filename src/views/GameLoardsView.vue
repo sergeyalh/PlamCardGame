@@ -232,51 +232,76 @@ const gameScene = new Phaser.Class({
     return characters || [];
   },
 
-  createOverlay: function (startX, startY, width, height) {
+  createOverlay: function (startX, startY, width, height, depth = 6) {
     const overlay = this.add.rectangle(startX, startY, width, height, 0x000000);
     overlay.setOrigin(0, 0); // Top-left corner
     overlay.setAlpha(0.2); // Semi-transparent
-    overlay.setDepth(6); // Ensure it's below the popup but above other game elements
+    overlay.setDepth(depth); // Ensure it's below the popup but above other game elements
     overlay.setInteractive(); // Block clicks
-    this.overlay = overlay;
+    return overlay;
   },
 
   showCharacterPopup: function (character) {
+
+    // Dimensions for the popup
+    let popupWidth = 400;
+    let popupHeight = 600;
+
     // Create a container for the popup
     this.characterInfoPopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
 
     // Create a semi-transparent background
-    let bg = this.add.rectangle(0, 0, 400, 600, 0x000000);
+    let bg = this.add.rectangle(0, 0, popupWidth, popupHeight, 0x000000);
     bg.setAlpha(0.8);
     this.characterInfoPopup.add(bg);
 
+    // Add a white border around the popup
+    let border = this.add.rectangle(0, 0, popupWidth, popupHeight);
+    border.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
+    this.characterInfoPopup.add(border);
+
     // Add character image
-    let charImage = this.add.image(0, -200, character.imagePath).setDisplaySize(150, 150);
+    let charImage = this.add.image(0, -200, character.nickname).setDisplaySize(300, 120);
     this.characterInfoPopup.add(charImage);
 
     // Add character information
-    let yOffset = -100; // Start position for character information text
+    let yOffset = -40; // Start position for character information text
+
+    let nickNametext = `${character['nickname']}`;
+    let nickNameTextBlock = this.add.text(0, -128, nickNametext, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+    nickNameTextBlock.setOrigin(0.5, 0);
+    this.characterInfoPopup.add(nickNameTextBlock);
+    let descriptiontext = `${character['description']}`;
+    let descriptiontextBlock = this.add.text(0, -108, descriptiontext, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+    descriptiontextBlock.setOrigin(0.5, 0);
+    this.characterInfoPopup.add(descriptiontextBlock);
+
+    const excludeKeys = ["description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
     Object.keys(character).forEach(key => {
       // Skip imagePath to not display it as text
-      if (key !== 'imagePath') {
+
+      if (!excludeKeys.includes(key)) {
         let text = `${key}: ${character[key]}`;
-        let infoText = this.add.text(-180, yOffset, text, { fontSize: '16px', fill: '#ffffff' });
+        let infoText = this.add.text(-180, yOffset, text, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 } });
         this.characterInfoPopup.add(infoText);
         yOffset += 20; // Increment y position for next piece of information
       }
     });
 
+    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height, 8);
+
     // Add a close button or area
-    let closeButton = this.add.text(150, -280, 'Close', { fontSize: '20px', fill: '#ff0000' });
+    let closeButton = this.add.text(185, -300, 'X', { fontSize: '20px', fill: '#ff0000' });
     closeButton.setInteractive();
     closeButton.on('pointerdown', () => {
       this.characterInfoPopup.destroy(); // Destroy the popup when close is clicked
+      this.removeOverLay(overLay);
     });
     this.characterInfoPopup.add(closeButton);
 
     // Centering the popup container
     this.characterInfoPopup.setSize(400, 600);
-    this.characterInfoPopup.setDepth(10); // Ensure the popup is above other game elements
+    this.characterInfoPopup.setDepth(9); // Ensure the popup is above other game elements
   },
 
   showMapPopup: function (x, y) {
@@ -284,7 +309,7 @@ const gameScene = new Phaser.Class({
     this.closeMapPopup();
 
     // Create an overlay
-    this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
+    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
 
     // Create a new popup at the center of the game
     const popupX = this.game.config.width / 2 + 125;
@@ -292,6 +317,11 @@ const gameScene = new Phaser.Class({
 
     // Create a new container for the popup elements
     this.mapPopup = this.add.container(popupX, popupY);
+
+    // Add a white border around the popup
+    let border = this.add.rectangle(0, 0, 1170, 880);
+    border.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
+    this.mapPopup.add(border);
 
     // Create the background for the popup
     const background = this.add.rectangle(0, 0, 1170, 880, 0x000000);
@@ -304,6 +334,7 @@ const gameScene = new Phaser.Class({
     closeButton.on('pointerdown', () => {
       // Close and remove the popup
       this.closeMapPopup();
+      this.removeOverLay(overLay)
     });
     this.mapPopup.add(closeButton);
 
@@ -403,15 +434,12 @@ const gameScene = new Phaser.Class({
       this.mapPopup.destroy();
       this.mapPopup = null;
     }
-
-    // Also destroy the overlay
-    this.removeOverLay();
   },
 
-  removeOverLay: function () {
-    if (this.overlay) {
-      this.overlay.destroy();
-      this.overlay = null;
+  removeOverLay: function (overLay) {
+    if (overLay) {
+      overLay.destroy();
+      overLay = null;
     }
   },
 
@@ -453,6 +481,7 @@ const gameScene = new Phaser.Class({
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(1, 1, 1);
     this.initCharactersOptions(0)
 
     this.addUnderBoss(1, 4, 2);
@@ -483,7 +512,7 @@ const gameScene = new Phaser.Class({
       });
 
       // Cost Display in the panel
-      this.gameInfo.activePlayerCharactersOptions[i].cost = this.add.text(20, panelY - 10, 'Cost: [' + this.gameInfo.players[playerIndex].availableCharacters[i].cost + ']', { font: '16px Arial', fill: '#ffffff' });
+      this.gameInfo.activePlayerCharactersOptions[i].cost = this.add.text(20, panelY - 10, 'Cost: [' + this.gameInfo.players[playerIndex].availableCharacters[i].Cost + ']', { font: '16px Arial', fill: '#ffffff' });
     }
   },
 
@@ -545,17 +574,15 @@ const gameScene = new Phaser.Class({
         let mapX = charToAdd.selectedX;
         let mapY = charToAdd.selectedY;
         charToAddInfo.location = { x: mapX, y: mapY };
-        const uid = function () {
-          return Date.now().toString(36) + Math.random().toString(36).substr(2);
-        }
+        const uid = this.createUid();
         charToAddInfo.id = uid;
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].image.destroy();
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].cost.destroy();
-        this.gameInfo.players[playerIndex].activeCharacters[uid()] = charToAddInfo;
+        this.gameInfo.players[playerIndex].activeCharacters[uid] = charToAddInfo;
         this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: charToAddInfo });
         // Remove the cost from players Cash
-        this.gameInfo.players[playerIndex].cash -= charToAddInfo.cost;
-        console.log(charToAddInfo.cost);
+        this.gameInfo.players[playerIndex].cash -= charToAddInfo.Cost;
+        console.log(charToAddInfo.Cost);
         this.gameInfo.players[playerIndex].availableCharacters[charToAdd.index] = this.charactersData[randomNumber];
         foundCharToAdd = true;
       }
@@ -564,15 +591,17 @@ const gameScene = new Phaser.Class({
     this.gameInfo.players[playerIndex].pendingHiring = null;
   },
 
+  createUid: function () {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  },
+
   addUnderBoss: function (playerIndex, mapY, mapX) {
     // Add UnderBoss for each player
     let underBossClone = { ...this.underbossChar };
     underBossClone.location = { x: mapX, y: mapY };
-    const uid = function () {
-      return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    }
+    const uid = this.createUid();
     underBossClone.id = uid;
-    this.gameInfo.players[playerIndex].activeCharacters[uid()] = underBossClone;
+    this.gameInfo.players[playerIndex].activeCharacters[uid] = underBossClone;
     this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
 
   },
@@ -657,8 +686,8 @@ const gameScene = new Phaser.Class({
       const slotY = this.startYforChars + 50 + index * 120;
       const panelY = 0 + 125;
       // Check if there is enough availabe cash for the selected character
-      if (this.gameInfo.players[playerIndex].availableCharacters[index].cost <= this.gameInfo.players[playerIndex].cash) {
-        this.createOverlay(0, 0, this.menuWidth, this.game.config.height);
+      if (this.gameInfo.players[playerIndex].availableCharacters[index].Cost <= this.gameInfo.players[playerIndex].cash) {
+        let overLay = this.createOverlay(0, 0, this.menuWidth, this.game.config.height);
 
         // Display the message or button
         let promptText = this.add.text(panelY, slotY, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff', wordWrap: { width: this.menuWidth } });
@@ -671,7 +700,7 @@ const gameScene = new Phaser.Class({
         cancelButton.setDepth(7);
         cancelButton.on('pointerdown', () => {
           this.cancelHiringProcess(promptText, cancelButton);
-          this.removeOverLay();
+          this.removeOverLay(overLay);
         });
 
         // TODO
