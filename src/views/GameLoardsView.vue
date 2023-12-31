@@ -261,14 +261,14 @@ const gameScene = new Phaser.Class({
     this.characterInfoPopup.add(border);
 
     // Add character image
-    let charImage = this.add.image(0, -200, character.nickname).setDisplaySize(300, 120);
+    let charImage = this.add.image(0, -203, character.nickname).setDisplaySize(350, 150);
     this.characterInfoPopup.add(charImage);
 
     // Add character information
-    let yOffset = -40; // Start position for character information text
+    let yOffset = -30; // Start position for character information text
 
     let nickNametext = `${character['nickname']}`;
-    let nickNameTextBlock = this.add.text(0, -128, nickNametext, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+    let nickNameTextBlock = this.add.text(0, -128, nickNametext, { fontSize: '16px', fontStyle: 'bold' , fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
     nickNameTextBlock.setOrigin(0.5, 0);
     this.characterInfoPopup.add(nickNameTextBlock);
     let descriptiontext = `${character['description']}`;
@@ -314,7 +314,7 @@ const gameScene = new Phaser.Class({
       xpTextBlock.setOrigin(0.5, 0);
       this.characterInfoPopup.add(xpTextBlock);
     }
-   
+
     this.characterInfoPopup.add(descriptiontextBlock);
 
     // Centering the popup container
