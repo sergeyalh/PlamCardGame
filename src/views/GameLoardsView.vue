@@ -74,13 +74,12 @@ const gameScene = new Phaser.Class({
 
     // Grid values
     this.cellSize = 150; // Size of the grid cell
-    this.battleGroungColums = 8; // Number of columns
-    this.battleGroungColumsRows = 6; // Update number of rows to 8
+    this.battleGroundColums = 8; // Number of columns
+    this.battleGroundColumsRows = 6; // Update number of rows to 8
     this.gridStart = this.menuWidth + 10;
   },
   setupGame: function () {
     // Create a menu panel
-
     this.add.rectangle(this.menuWidth / 2, this.menuHeight / 2, this.menuWidth, this.menuHeight, 0x333333);
 
     // Add some menu items
@@ -146,9 +145,9 @@ const gameScene = new Phaser.Class({
     // Draw the grid
     const graphics = this.add.graphics({ lineStyle: { width: 1, color: 0xffffff } });
 
-    for (let i = 0; i < this.battleGroungColumsRows; i++) {
+    for (let i = 0; i < this.battleGroundColumsRows; i++) {
       this.gameInfo.map[i] = [];
-      for (let j = 0; j < this.battleGroungColums; j++) {
+      for (let j = 0; j < this.battleGroundColums; j++) {
         const x = j * this.cellSize + this.gridStart + (this.cellSize / 2);
         const y = i * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
@@ -165,14 +164,16 @@ const gameScene = new Phaser.Class({
     }
 
     // Draw the grid lines on top of the images
-    for (let i = 0; i <= this.battleGroungColums; i++) {
+    for (let i = 0; i <= this.battleGroundColums; i++) {
       graphics.moveTo(i * this.cellSize + this.gridStart, this.playerSlotHeight);
-      graphics.lineTo(i * this.cellSize + this.gridStart, this.cellSize * this.battleGroungColumsRows + this.playerSlotHeight);
+      graphics.lineTo(i * this.cellSize + this.gridStart, this.cellSize * this.battleGroundColumsRows + this.playerSlotHeight);
     }
-    for (let j = 0; j <= this.battleGroungColumsRows; j++) {
+    for (let j = 0; j <= this.battleGroundColumsRows; j++) {
       graphics.moveTo(this.gridStart, j * this.cellSize + this.playerSlotHeight);
-      graphics.lineTo(this.cellSize * this.battleGroungColums + this.gridStart, j * this.cellSize + this.playerSlotHeight);
+      graphics.lineTo(this.cellSize * this.battleGroundColums + this.gridStart, j * this.cellSize + this.playerSlotHeight);
     }
+
+    this.playerInfoText = this.add.text(47, 60, "", { font: '16px Arial', fill: '#ffffff', align: 'left', wordWrap: { width: 190 } });
 
     this.setStartMap();
     this.updatePlayerInfo();
@@ -197,19 +198,17 @@ const gameScene = new Phaser.Class({
       }
     });
 
-    // Now, place an icon for each unique location
+    // Now, place an icon for each location where the active player has an army
     Object.keys(locationsUnderControlAndCharactersCounter).forEach(locationKey => {
       const [y, x] = locationKey.split(',').map(Number);
       const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
       const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
       let icon = this.add.image(xOnMap, yOnMap, 'characterLocation');
-      icon.setDisplaySize(50, 50); // Adjust size as needed
+      icon.setDisplaySize(50, 50);
       icon.setDepth(5);
 
       // Make the icon interactive
       icon.setInteractive();
-
-      // Add a click event listener to the icon
       icon.on('pointerdown', () => {
         this.showMapPopup(x, y);
       });
@@ -218,7 +217,7 @@ const gameScene = new Phaser.Class({
       let iconEnemies = null;
       if (this.gameInfo.map[y][x].charactersOnMapPiece.length > locationsUnderControlAndCharactersCounter[locationKey]) {
         iconEnemies = this.add.image(xOnMap, yOnMap, 'characterLocationUnderSiege');
-        iconEnemies.setDisplaySize(105, 105); // Adjust size as needed
+        iconEnemies.setDisplaySize(105, 105);
         iconEnemies.setDepth(5);
       }
 
@@ -242,8 +241,6 @@ const gameScene = new Phaser.Class({
   },
 
   showCharacterPopup: function (character) {
-
-    // Dimensions for the popup
     let popupWidth = 400;
     let popupHeight = 600;
 
@@ -276,7 +273,7 @@ const gameScene = new Phaser.Class({
     descriptiontextBlock.setOrigin(0.5, 0);
     this.characterInfoPopup.add(descriptiontextBlock);
 
-    const excludeKeys = ["Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
+    const excludeKeys = ["HP","Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
     Object.keys(character).forEach(key => {
       // Skip imagePath to not display it as text
 
@@ -299,21 +296,31 @@ const gameScene = new Phaser.Class({
     });
     this.characterInfoPopup.add(closeButton);
 
+    let characterHP = character['HP'];
+    if (characterHP || characterHP == 0) {
+      let hpText = `HP:` + characterHP + "%";
+      let hpTextBlock = this.add.text(100, -40, hpText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+      hpTextBlock.setOrigin(0.5, 0);
+      this.characterInfoPopup.add(hpTextBlock);
+    }
+
     let characterLevel = character['Level'];
     if (characterLevel) {
       let levelText = `LVL:` + characterLevel;
-      let levelTextBlock = this.add.text(100, -40, levelText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+      let levelTextBlock = this.add.text(100, -20, levelText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
       levelTextBlock.setOrigin(0.5, 0);
       this.characterInfoPopup.add(levelTextBlock);
     }
 
     let characterXP = character['XP'];
     if (characterXP || characterXP == 0) {
-      let xpText = `XP:` + characterLevel;
-      let xpTextBlock = this.add.text(100, -20, xpText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+      let xpText = `XP:` + characterXP;
+      let xpTextBlock = this.add.text(100, 0, xpText, { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
       xpTextBlock.setOrigin(0.5, 0);
       this.characterInfoPopup.add(xpTextBlock);
     }
+
+
 
     this.characterInfoPopup.add(descriptiontextBlock);
 
@@ -359,7 +366,7 @@ const gameScene = new Phaser.Class({
     const allCharactersOnThisPiece = this.getCharactersAtLocation(x, y);
     const yInitialOffSet = -360; // Start a bit below the top of the popup
     let yOffset = yInitialOffSet
-    let xOffset = -550; // Start a bit below the top of the popup
+    let xOffset = -570; // Start a bit below the top of the popup
     let xEnemyOffset = 350;
     let yEnempyOffset = yInitialOffSet
     let charactersPerColumn = 5; // Number of characters per column
@@ -397,7 +404,7 @@ const gameScene = new Phaser.Class({
 
         // Check if we need to move to the next column
         if (characterCount % charactersPerColumn === 0) {
-          xOffset += columnWidth + 110 + 15; // Move to the next column
+          xOffset += columnWidth + 110 + 40; // Move to the next column
           yOffset = yInitialOffSet; // Reset Y position for the top of the new column
         } else {
           yOffset += 93;  // Move down for the next entry, ensuring space for image and text
@@ -412,7 +419,6 @@ const gameScene = new Phaser.Class({
         charImage.on('pointerdown', () => {
           this.showCharacterPopup(element.character);
         });
-
 
         this.mapPopup.add(charImage);
 
@@ -434,7 +440,7 @@ const gameScene = new Phaser.Class({
 
         // Check if we need to move to the next column
         if (enemyCharacterCount % charactersPerColumn === 0) {
-          xEnemyOffset += -columnWidth - 110 - 15; // Move to the next column
+          xEnemyOffset += -columnWidth - 110 - 40; // Move to the next column
           yEnempyOffset = yInitialOffSet; // Reset Y position for the top of the new column
         } else {
           yEnempyOffset += 93;  // Move down for the next entry, ensuring space for image and text
@@ -473,16 +479,11 @@ const gameScene = new Phaser.Class({
     if (this.incommingIcon) {
       this.incommingIcon.destroy();
     }
-    this.gameInfo.activPlayereCharactersLocationIcons = []; // Reset the array after clearing
+    this.gameInfo.activPlayereCharactersLocationIcons = [];
   },
 
   updatePlayerInfo: function () {
     const activePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
-    if (!this.playerInfoText) {
-      // Create it if it doesn't exist
-      this.playerInfoText = this.add.text(47, 60, "", { font: '16px Arial', fill: '#ffffff', align: 'left', wordWrap: { width: 190 } });
-    }
-
     // Format the text into multiple lines
     const infoText = [
       `Player: ${activePlayer.nickname}`,
@@ -492,13 +493,25 @@ const gameScene = new Phaser.Class({
 
     // Update the text
     this.playerInfoText.setText(infoText);
-
     this.initCharactersOptionsView(this.gameInfo.activePlayerIndex);
   },
 
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(0, 1, 1);
+    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 1, 1);
     this.addUnderBoss(1, 1, 1);
     this.initCharactersOptions(0)
 
@@ -596,6 +609,7 @@ const gameScene = new Phaser.Class({
         charToAddInfo.id = uid;
         charToAddInfo.XP = 0;
         charToAddInfo.Level = 1;
+        charToAddInfo.HP = 100;
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].image.destroy();
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].cost.destroy();
         this.gameInfo.players[playerIndex].activeCharacters[uid] = charToAddInfo;
@@ -623,6 +637,7 @@ const gameScene = new Phaser.Class({
     underBossClone.id = uid;
     underBossClone.XP = 0;
     underBossClone.Level = 1;
+    underBossClone.HP = 100;
     this.gameInfo.players[playerIndex].activeCharacters[uid] = underBossClone;
     this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
 
@@ -725,7 +740,6 @@ const gameScene = new Phaser.Class({
           this.removeOverLay(overLay);
         });
 
-        // TODO
         // Make the map interactive for selection
         this.makeMapInteractiveForCharacterLocation(slotY, panelY, index, cancelButton, promptText, overLay);
 
