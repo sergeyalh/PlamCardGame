@@ -240,6 +240,123 @@ const gameScene = new Phaser.Class({
     return overlay;
   },
 
+  showCharacterActionsPopup: function (character, x, y) {
+    const xLocation = character.location.x;
+    const yLocation = character.location.y;
+    console.log("pointer location: " + x + ":" + y + "characterLocationOnMap: " + xLocation + ":" + yLocation);
+    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height, 9);
+
+    let popupWidth = 150;
+    let popupHeight = 325;
+
+    // Create a container for the popup
+    this.characterActionsPopup = this.add.container(x + popupWidth / 2, y + popupHeight / 2 - 100);
+    this.characterActionsPopup.setAlpha(1);
+    this.characterActionsPopup.setDepth(10);
+
+    // Create a semi-transparent background
+    let bg = this.add.rectangle(0, 0, popupWidth, popupHeight, 0x000000);
+    bg.setAlpha(1);
+    this.characterActionsPopup.add(bg);
+
+    // Add a close button or area
+    let closeButton = this.add.text(popupWidth / 2 - 17, 5 - popupHeight / 2, 'X', { fontSize: '20px', fill: '#ff0000' });
+    closeButton.setInteractive();
+    closeButton.on('pointerdown', () => {
+      this.characterActionsPopup.destroy(); // Destroy the popup when close is clicked
+      this.removeOverLay(overLay);
+    });
+    this.characterActionsPopup.add(closeButton);
+
+    // Add a white border around the popup
+    let border = this.add.rectangle(0, 0, popupWidth, popupHeight);
+    border.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
+    this.characterActionsPopup.add(border);
+
+    // Define menu options
+    const options = ["Move", "Attack", "Bribe", "Build", "Research", "Buy", "Conquer"];
+    let yOffset = -120; // Starting Y offset for first option
+
+    // Add each option as an interactive text object
+    options.forEach((option) => {
+      let text = this.add.text(-60, yOffset, option, { fontSize: '18px', fill: '#fff', fontStyle: 'bold' });
+      text.setInteractive();
+      text.on('pointerdown', () => {
+        this.characterActionsPopup.destroy(); // Destroy the popup when close is clicked
+        this.removeOverLay(overLay);
+        this.handleActionClick(character, option); // You'll need to define this function
+      });
+      this.characterActionsPopup.add(text);
+      yOffset += 40; // Increment yOffset for next option
+    });
+  },
+
+  handleActionClick: function (character, option) {
+    if (option === "Move") {
+      this.showMoveOptions(character);
+    }
+    console.log("Action:" + option + " for character " + character.nickname)
+  },
+
+  showMoveOptions(character) {
+    // Get character current position
+    let charX = character.location.x;
+    let charY = character.location.y;
+
+    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height, 9);
+
+    // Calculate surrounding grid indices, ensuring they are within the bounds of your game's map
+    let minX = Math.max(0, charX - 1);
+    let maxX = Math.min(this.battleGroundColums - 1, charX + 1);
+    let minY = Math.max(0, charY - 1);
+    let maxY = Math.min(this.battleGroundColumsRows - 1, charY + 1);
+
+    // Create popup container for move options
+    this.movePopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+    this.movePopup.setDepth(9);
+
+    // Add a background for the popup
+    let bg = this.add.rectangle(0, 0, 450, 450, 0x000000);  // Adjust size as needed
+    bg.setAlpha(1);
+    this.movePopup.add(bg);
+
+    // Add a white border around the popup
+    let border = this.add.rectangle(0, 0, 450, 450);
+    border.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
+    this.movePopup.add(border);
+
+    // Create 3x3 grid for surrounding tiles
+    let tileSize = 130; // Size of each tile in the grid
+    let xOffset = -tileSize; // Starting x offset for grid
+    let yOffset = -tileSize; // Starting y offset for grid
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        // Use the actual map piece image
+        let mapPiece = this.gameInfo.map[y][x].photo;
+        let tile = this.add.image(xOffset, yOffset, mapPiece.texture.key).setDisplaySize(tileSize, tileSize);
+        tile.setInteractive();
+        tile.on('pointerdown', () => {
+          this.moveCharacterTo(character, x, y);
+          this.movePopup.destroy(); // Close the popup after selecting move
+          this.removeOverLay(overLay);
+        });
+        this.movePopup.add(tile);
+        xOffset += tileSize + 10;  // Adjust spacing as needed
+      }
+      xOffset = -tileSize; // Reset xOffset for new row
+      yOffset += tileSize + 10;  // Adjust spacing as needed
+    }
+
+  },
+
+  // Function to handle character movement
+  moveCharacterTo: function (character, x, y) {
+    // Logic to move character to the new x, y position
+    console.log(`Moving ${character.nickname} to (${x}, ${y})`);
+    // Update character's location, refresh the display, etc.
+  },
+
+
   showCharacterPopup: function (character) {
     let popupWidth = 400;
     let popupHeight = 600;
@@ -265,7 +382,7 @@ const gameScene = new Phaser.Class({
     let yOffset = -30; // Start position for character information text
 
     let nickNametext = `${character['nickname']}`;
-    let nickNameTextBlock = this.add.text(0, -128, nickNametext, { fontSize: '16px', fontStyle: 'bold' , fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
+    let nickNameTextBlock = this.add.text(0, -128, nickNametext, { fontSize: '16px', fontStyle: 'bold', fill: '#ffffff', wordWrap: { width: 350 }, align: 'center' });
     nickNameTextBlock.setOrigin(0.5, 0);
     this.characterInfoPopup.add(nickNameTextBlock);
     let descriptiontext = `${character['description']}`;
@@ -273,7 +390,7 @@ const gameScene = new Phaser.Class({
     descriptiontextBlock.setOrigin(0.5, 0);
     this.characterInfoPopup.add(descriptiontextBlock);
 
-    const excludeKeys = ["HP","Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
+    const excludeKeys = ["HP", "Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
     Object.keys(character).forEach(key => {
       // Skip imagePath to not display it as text
 
@@ -319,8 +436,6 @@ const gameScene = new Phaser.Class({
       xpTextBlock.setOrigin(0.5, 0);
       this.characterInfoPopup.add(xpTextBlock);
     }
-
-
 
     this.characterInfoPopup.add(descriptiontextBlock);
 
@@ -398,9 +513,17 @@ const gameScene = new Phaser.Class({
         );
         this.mapPopup.add(border); // Add the border to the popup
 
-        // Add the character's nickname text on top of the image
+        // Add the character's nickname text on bottom of the image
         let playerText = this.add.text(xOffset, yOffset + 30, element.character.nickname, { fontSize: '16px', fill: '#ffffff' });
         this.mapPopup.add(playerText);
+
+        // Add the characters Menu Button
+        let menu = this.add.text(xOffset + charImage.displayWidth, yOffset + 30, ">", { fontSize: '16px', fill: '#ffffff' });
+        menu.setInteractive();
+        menu.on('pointerdown', (pointer) => {
+          this.showCharacterActionsPopup(element.character, pointer.x, pointer.y);
+        });
+        this.mapPopup.add(menu);
 
         // Check if we need to move to the next column
         if (characterCount % charactersPerColumn === 0) {
@@ -498,21 +621,18 @@ const gameScene = new Phaser.Class({
 
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
+    this.conquerTerritory(0, 0, 0);
+    this.conquerTerritory(0, 0, 1);
+    this.addUnderBoss(0, 0, 0);
     this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 1, 1);
+    this.addUnderBoss(1, 0, 1);
+
     this.initCharactersOptions(0)
 
     this.addUnderBoss(1, 4, 2);
@@ -526,6 +646,7 @@ const gameScene = new Phaser.Class({
 
     this.conquerTerritory(3, 4, 6);
     this.addUnderBoss(3, 4, 6);
+    this.addUnderBoss(3, 5, 7);
     this.initCharactersOptions(3);
   },
 
