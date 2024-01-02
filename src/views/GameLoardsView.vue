@@ -198,20 +198,34 @@ const gameScene = new Phaser.Class({
       }
     });
 
+    // Get the active under control pieces
+    const activePlayerUnderControlPieces = this.gameInfo.players[this.gameInfo.activePlayerIndex].underControlPieces;
+
+    Object.values(activePlayerUnderControlPieces).forEach(mapPiece => {
+      // Assuming character.location holds an object with x and y
+      const locationKey = `${mapPiece.y},${mapPiece.x}`; // Create a unique key for the location
+      if (!locationsUnderControlAndCharactersCounter[locationKey]) {
+        locationsUnderControlAndCharactersCounter[locationKey] = 0;
+      }
+    });
+
     // Now, place an icon for each location where the active player has an army
     Object.keys(locationsUnderControlAndCharactersCounter).forEach(locationKey => {
       const [y, x] = locationKey.split(',').map(Number);
       const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
       const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
-      let icon = this.add.image(xOnMap, yOnMap, 'characterLocation');
-      icon.setDisplaySize(50, 50);
-      icon.setDepth(5);
+      let icon = null;
+      if (locationsUnderControlAndCharactersCounter[locationKey] > 0) {
+        icon = this.add.image(xOnMap, yOnMap, 'characterLocation');
+        icon.setDisplaySize(50, 50);
+        icon.setDepth(5);
 
-      // Make the icon interactive
-      icon.setInteractive();
-      icon.on('pointerdown', () => {
-        this.showMapPopup(x, y);
-      });
+        // Make the icon interactive
+        icon.setInteractive();
+        icon.on('pointerdown', () => {
+          this.showMapPopup(x, y);
+        });
+      }
 
       // Check if there are enemies on this piece of map
       let iconEnemies = null;
@@ -332,8 +346,8 @@ const gameScene = new Phaser.Class({
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         // Use the actual map piece image
-        let mapPiece = this.gameInfo.map[y][x].photo;
-        let tile = this.add.image(xOffset, yOffset, mapPiece.texture.key).setDisplaySize(tileSize, tileSize);
+        let mapPiece = this.gameInfo.map[y][x];
+        let tile = this.add.image(xOffset, yOffset, mapPiece.photo.texture.key).setDisplaySize(tileSize, tileSize);
         tile.setInteractive();
         tile.on('pointerdown', () => {
           this.moveCharacterTo(character, x, y);
@@ -341,6 +355,23 @@ const gameScene = new Phaser.Class({
           this.removeOverLay(overLay);
         });
         this.movePopup.add(tile);
+        let color = this.gameInfo.colors[mapPiece.owner];
+        let colorOverlay = this.colorArea(xOffset, yOffset, color, 0.4, tileSize, tileSize);
+        this.movePopup.add(colorOverlay);
+        let activePlayerCharactersOnMapPiece = mapPiece.charactersOnMapPiece.filter((char) => char.player == this.gameInfo.activePlayerIndex); 
+        if (activePlayerCharactersOnMapPiece.length > 0){
+          let icon = this.add.image(xOffset, yOffset, 'characterLocation');
+          icon.setDisplaySize(50, 50);
+          icon.setDepth(11);
+          this.movePopup.add(icon);
+        }
+        let bEnemiesCharactersOnMapPiece = mapPiece.charactersOnMapPiece.length > activePlayerCharactersOnMapPiece.length;
+        if (((mapPiece.owner === this.gameInfo.activePlayerIndex) || (activePlayerCharactersOnMapPiece.length > 0)) && bEnemiesCharactersOnMapPiece) {
+          let iconEnemies = this.add.image(xOffset, yOffset, 'characterLocationUnderSiege');
+          iconEnemies.setDisplaySize(105, 105);
+          iconEnemies.setDepth(11);
+          this.movePopup.add(iconEnemies);
+        }
         xOffset += tileSize + 10;  // Adjust spacing as needed
       }
       xOffset = -tileSize; // Reset xOffset for new row
@@ -593,7 +624,9 @@ const gameScene = new Phaser.Class({
   clearCharacterLocationIcons: function () {
     // Remove all character location icons from the map
     this.gameInfo.activPlayereCharactersLocationIcons.forEach(location => {
-      location.icon.destroy();
+      if (location.icon) {
+        location.icon.destroy();
+      }
       if (location.enemies) {
         location.enemies.destroy()
       }
@@ -623,6 +656,7 @@ const gameScene = new Phaser.Class({
     this.conquerTerritory(0, 1, 1);
     this.conquerTerritory(0, 0, 0);
     this.conquerTerritory(0, 0, 1);
+    this.conquerTerritory(1, 1, 0);
     this.addUnderBoss(0, 0, 0);
     this.addUnderBoss(0, 1, 1);
     this.addUnderBoss(0, 1, 1);
@@ -768,7 +802,10 @@ const gameScene = new Phaser.Class({
     let color = this.gameInfo.colors[playerIndex];
     mapPiece.color = color;
     mapPiece.owner = playerIndex;
-    this.colorArea(mapPiece.x, mapPiece.y, color, 0.4, 150, 150);
+    if (mapPiece.colorOverlay){
+      mapPiece.colorOverlay.destroy();
+    }
+    mapPiece.colorOverlay = this.colorArea(mapPiece.x, mapPiece.y, color, 0.4, 150, 150);
     this.gameInfo.players[playerIndex].underControlPieces.push({ x: mapX, y: mapY });
   },
 
@@ -965,6 +1002,7 @@ const gameScene = new Phaser.Class({
 
     // Move the overlay to be exactly on top of the image
     colorOverlay.setDepth(1);
+    return colorOverlay;
   }
 });
 
