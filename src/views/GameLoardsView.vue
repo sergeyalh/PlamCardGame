@@ -15,6 +15,7 @@ const gameScene = new Phaser.Class({
       activePlayerIndex: 0,
       activePlayerCharactersOptions: [],
       activPlayereCharactersLocationIcons: [],
+      characterOptions: ["Move", "Attack", "Bribe", "Build", "Research", "Buy", "Conquer"],
       monthsList: ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"],
       colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
@@ -287,12 +288,10 @@ const gameScene = new Phaser.Class({
     border.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
     this.characterActionsPopup.add(border);
 
-    // Define menu options
-    const options = ["Move", "Attack", "Bribe", "Build", "Research", "Buy", "Conquer"];
     let yOffset = -120; // Starting Y offset for first option
 
     // Add each option as an interactive text object
-    options.forEach((option) => {
+    this.gameInfo.characterOptions.forEach((option) => {
       let text = this.add.text(-60, yOffset, option, { fontSize: '18px', fill: '#fff', fontStyle: 'bold' });
       text.setInteractive();
       text.on('pointerdown', () => {
@@ -308,6 +307,8 @@ const gameScene = new Phaser.Class({
   handleActionClick: function (character, option) {
     if (option === "Move") {
       this.showMoveOptions(character);
+    } else if (option === "Conquer") {
+      character.actionForNextTurn = { action: "Conquer", x: character.location.x, y: character.location.y };
     }
     console.log("Action:" + option + " for character " + character.nickname)
   },
@@ -343,6 +344,15 @@ const gameScene = new Phaser.Class({
     let tileSize = 130; // Size of each tile in the grid
     let xOffset = -tileSize; // Starting x offset for grid
     let yOffset = -tileSize; // Starting y offset for grid
+
+    let curXtoMove = null;
+    let curYtoMove = null;
+    // Check if Player already have a action of movment
+    if (character.actionForNextTurn && character.actionForNextTurn.action == "Move") {
+      curXtoMove = character.actionForNextTurn.x;
+      curYtoMove = character.actionForNextTurn.y;
+    }
+
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         // Use the actual map piece image
@@ -358,8 +368,8 @@ const gameScene = new Phaser.Class({
         let color = this.gameInfo.colors[mapPiece.owner];
         let colorOverlay = this.colorArea(xOffset, yOffset, color, 0.4, tileSize, tileSize);
         this.movePopup.add(colorOverlay);
-        let activePlayerCharactersOnMapPiece = mapPiece.charactersOnMapPiece.filter((char) => char.player == this.gameInfo.activePlayerIndex); 
-        if (activePlayerCharactersOnMapPiece.length > 0){
+        let activePlayerCharactersOnMapPiece = mapPiece.charactersOnMapPiece.filter((char) => char.player == this.gameInfo.activePlayerIndex);
+        if (activePlayerCharactersOnMapPiece.length > 0) {
           let icon = this.add.image(xOffset, yOffset, 'characterLocation');
           icon.setDisplaySize(50, 50);
           icon.setDepth(11);
@@ -371,6 +381,11 @@ const gameScene = new Phaser.Class({
           iconEnemies.setDisplaySize(105, 105);
           iconEnemies.setDepth(11);
           this.movePopup.add(iconEnemies);
+        }
+        if (character.actionForNextTurn && character.actionForNextTurn.action == "Move" && x == curXtoMove && y == curYtoMove) {
+          let text = this.add.text(xOffset, yOffset, "MOVING", { fontSize: '18px', fill: '#fff', fontStyle: 'bold' });
+          text.setDepth(15);
+          this.movePopup.add(text);
         }
         xOffset += tileSize + 10;  // Adjust spacing as needed
       }
@@ -385,9 +400,9 @@ const gameScene = new Phaser.Class({
     // Logic to move character to the new x, y position
     console.log(`Moving ${character.nickname} to (${x}, ${y})`);
     // Update character's location, refresh the display, etc.
+    character.actionForNextTurn = { action: "Move", x, y };
   },
-
-
+  
   showCharacterPopup: function (character) {
     let popupWidth = 400;
     let popupHeight = 600;
@@ -768,7 +783,7 @@ const gameScene = new Phaser.Class({
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].image.destroy();
         this.gameInfo.activePlayerCharactersOptions[charToAdd.index].cost.destroy();
         this.gameInfo.players[playerIndex].activeCharacters[uid] = charToAddInfo;
-        this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: charToAddInfo });
+        this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: charToAddInfo, id: uid });
         // Remove the cost from players Cash
         this.gameInfo.players[playerIndex].cash -= charToAddInfo.Cost;
         console.log(charToAddInfo.Cost);
@@ -794,7 +809,7 @@ const gameScene = new Phaser.Class({
     underBossClone.Level = 1;
     underBossClone.HP = 100;
     this.gameInfo.players[playerIndex].activeCharacters[uid] = underBossClone;
-    this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone });
+    this.gameInfo.map[mapY][mapX].charactersOnMapPiece.push({ player: playerIndex, character: underBossClone, id: uid });
 
   },
   conquerTerritory: function (playerIndex, mapY, mapX) {
@@ -802,7 +817,7 @@ const gameScene = new Phaser.Class({
     let color = this.gameInfo.colors[playerIndex];
     mapPiece.color = color;
     mapPiece.owner = playerIndex;
-    if (mapPiece.colorOverlay){
+    if (mapPiece.colorOverlay) {
       mapPiece.colorOverlay.destroy();
     }
     mapPiece.colorOverlay = this.colorArea(mapPiece.x, mapPiece.y, color, 0.4, 150, 150);
@@ -949,12 +964,52 @@ const gameScene = new Phaser.Class({
     }
   },
 
+  doCharacterAction: function (character) {
+    let charNextTurnAction = character.actionForNextTurn;
+    let x = charNextTurnAction.x;
+    let y = charNextTurnAction.y;
+    if (charNextTurnAction.action == "Move") {
+
+      // Remove from here
+      let mapPieceToRemove = this.gameInfo.map[character.location.y][character.location.x];
+      mapPieceToRemove.charactersOnMapPiece = mapPieceToRemove.charactersOnMapPiece.filter(function(item) {
+        return item.id !== character.id;
+      });
+
+      character.location.x = x;
+      character.location.y = y;
+      console.log(mapPieceToRemove);
+      // Move here
+      let mapPiece = this.gameInfo.map[y][x];
+      mapPiece.charactersOnMapPiece.push({ player: this.gameInfo.activePlayerIndex, character: character, id: character.id });
+      console.log(mapPiece);
+
+      // Clean Action
+    } else if (charNextTurnAction.action == "Conquer"){
+      let x = charNextTurnAction.x;
+      let y = charNextTurnAction.y;
+      this.conquerTerritory(this.gameInfo.activePlayerIndex, y, x);
+    }
+  },
+
   endTurn: function () {
-    if (this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering !== null) {
+    let activePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
+    if (activePlayer.pendingFiering !== null) {
       this.deleteCharacterAndAddNewUniqeRandomCharacter();
-    } else if (this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingHiring !== null) {
+    } else if (activePlayer.pendingHiring !== null) {
       this.addCharacterAndAddNewUniqeRandomCharacter();
     }
+
+    // Get the active player's characters
+    const activePlayerCharacters = this.gameInfo.players[this.gameInfo.activePlayerIndex].activeCharacters;
+
+    // Loop through each character and add their location to the set
+    Object.values(activePlayerCharacters).forEach(character => {
+      let charNextTurnAction = character.actionForNextTurn;
+      if (charNextTurnAction) {
+        this.doCharacterAction(character);
+      }
+    });
 
     // Clear existing character location icons if any
     this.clearCharacterLocationIcons();
