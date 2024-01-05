@@ -314,7 +314,7 @@ const gameScene = new Phaser.Class({
       text.setDepth(15);
       this.mapPopup.add(text);
     }
-    console.log("Action:" + option + " for character " + character.nickname + "BTW Should show icon on "+ characterOnPopUpxOffset+":" + characterOnPopUpyOffset);
+    console.log("Action:" + option + " for character " + character.nickname + "BTW Should show icon on " + characterOnPopUpxOffset + ":" + characterOnPopUpyOffset);
   },
 
   showMoveOptions(character, characterOnPopUpxOffset, characterOnPopUpyOffset) {
@@ -367,7 +367,7 @@ const gameScene = new Phaser.Class({
           this.moveCharacterTo(character, x, y);
           this.movePopup.destroy(); // Close the popup after selecting move
           this.removeOverLay(overLay);
-          
+
           let text = this.add.text(characterOnPopUpxOffset, characterOnPopUpyOffset, "V", { fontSize: '18px', fill: '#00FF00', fontStyle: 'bold' });
           text.setDepth(15);
           this.mapPopup.add(text);
@@ -586,7 +586,7 @@ const gameScene = new Phaser.Class({
         let menu = this.add.text(xOffset + charImage.displayWidth, yOffset + 30, ">", { fontSize: '16px', fill: '#ffffff' });
         menu.setInteractive();
         element.locacionXonMapPopup = xOffset + charImage.displayWidth - 12;
-        element.locacionYonMapPopup = yOffset -45;
+        element.locacionYonMapPopup = yOffset - 45;
         menu.on('pointerdown', (pointer) => {
           this.showCharacterActionsPopup(element.character, pointer.x, pointer.y, element.locacionXonMapPopup, element.locacionYonMapPopup);
         });
@@ -690,34 +690,22 @@ const gameScene = new Phaser.Class({
 
   setStartMap: function () {
     this.conquerTerritory(0, 1, 1);
-    this.conquerTerritory(0, 0, 0);
-    this.conquerTerritory(0, 0, 1);
-    this.conquerTerritory(1, 1, 0);
-    this.addUnderBoss(0, 0, 0);
     this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(0, 1, 1);
-    this.addUnderBoss(1, 1, 1);
-    this.addUnderBoss(1, 0, 1);
-
     this.initCharactersOptions(0)
 
     this.addUnderBoss(1, 4, 2);
     this.conquerTerritory(1, 4, 2);
-    this.updateCharacterIcons();
-
     this.initCharactersOptions(1)
+
     this.conquerTerritory(2, 1, 5);
     this.addUnderBoss(2, 1, 5);
     this.initCharactersOptions(2)
 
     this.conquerTerritory(3, 4, 6);
     this.addUnderBoss(3, 4, 6);
-    this.addUnderBoss(3, 5, 7);
     this.initCharactersOptions(3);
+
+    this.updateCharacterIcons();
   },
 
   initCharactersOptionsView: function (playerIndex) {
@@ -835,6 +823,10 @@ const gameScene = new Phaser.Class({
   },
   conquerTerritory: function (playerIndex, mapY, mapX) {
     let mapPiece = this.gameInfo.map[mapY][mapX];
+    const oldOwner = mapPiece.owner;
+    if (oldOwner) {
+      this.gameInfo.players[oldOwner].underControlPieces = this.gameInfo.players[oldOwner].underControlPieces.filter((mapPiece) => mapPiece.x !== mapX || mapPiece.y !== mapY);
+    }
     let color = this.gameInfo.colors[playerIndex];
     mapPiece.color = color;
     mapPiece.owner = playerIndex;
@@ -999,30 +991,84 @@ const gameScene = new Phaser.Class({
 
       character.location.x = x;
       character.location.y = y;
-      console.log(mapPieceToRemove);
       // Move here
       let mapPiece = this.gameInfo.map[y][x];
       mapPiece.charactersOnMapPiece.push({ player: this.gameInfo.activePlayerIndex, character: character, id: character.id });
       console.log(mapPiece);
-
-      // Clean Action
     } else if (charNextTurnAction.action == "Conquer") {
       let x = charNextTurnAction.x;
       let y = charNextTurnAction.y;
       this.conquerTerritory(this.gameInfo.activePlayerIndex, y, x);
     }
+    character.actionForNextTurn = null;
+
   },
 
   endTurn: function () {
     let activePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
+    // Get the active player's characters
+    const activePlayerCharacters = activePlayer.activeCharacters;
+    //const charactersThatNotAssignedToDoAnyJob = activePlayerCharacters.filter((char) => char.actionForNextTurn == null || char.actionForNextTurn == undefined);
+
+    const charactersArray = Object.values(activePlayerCharacters); // Convert object values into an array
+
+    // Filter characters that don't have an 'actionForNextTurn' property or it's null/undefined
+    const charactersThatNotAssignedToDoAnyJob = charactersArray.filter((char) => !char.actionForNextTurn);
+
+    // Get the count
+    const count = charactersThatNotAssignedToDoAnyJob.length;
+
+    if (count == 0) {
+      this.endTurnApproved(activePlayer, activePlayerCharacters);
+    } else {
+      this.showEndTurnConfirmation(activePlayer, activePlayerCharacters);
+      console.log("Not all doing ....");
+    }
+  },
+
+  showEndTurnConfirmation(activePlayer, activePlayerCharacters) {
+    // Create popup container for end turn confirmation
+    let confirmationPopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+
+    // Add a semi-transparent background for the popup
+    let bg = this.add.rectangle(0, 0, 500, 200, 0x000000);
+    bg.setAlpha(0.8);
+    confirmationPopup.add(bg);
+
+    // Display the confirmation message
+    let message = "Not all characters have a mission.\nDo you still want to end your turn?";
+    let messageText = this.add.text(-190, -50, message, { fontSize: '18px', fill: '#ffffff', align: 'center' });
+    confirmationPopup.add(messageText);
+
+    // "OK" button to end turn
+    let okButton = this.add.text(-50, 50, 'OK', { fontSize: '20px', fill: '#00FF00', backgroundColor: '#000000' });
+    okButton.setInteractive();
+    okButton.on('pointerdown', () => {
+      // Logic to end the turn
+      this.endTurnApproved(activePlayer, activePlayerCharacters);
+      confirmationPopup.destroy();
+    });
+    confirmationPopup.add(okButton);
+
+    // "Cancel" button to continue the turn
+    let cancelButton = this.add.text(50, 50, 'Cancel', { fontSize: '20px', fill: '#FF0000', backgroundColor: '#000000' });
+    cancelButton.setInteractive();
+    cancelButton.on('pointerdown', () => {
+      // Logic to close the popup and return to the game
+      confirmationPopup.destroy();
+    });
+    confirmationPopup.add(cancelButton);
+
+    // Now the popup is set up, and interactive
+    this.endTurnConfirmationPopup = confirmationPopup; // Assign to a property for later reference or manipulation
+  },
+
+  endTurnApproved: function (activePlayer, activePlayerCharacters) {
     if (activePlayer.pendingFiering !== null) {
       this.deleteCharacterAndAddNewUniqeRandomCharacter();
     } else if (activePlayer.pendingHiring !== null) {
       this.addCharacterAndAddNewUniqeRandomCharacter();
     }
-
-    // Get the active player's characters
-    const activePlayerCharacters = this.gameInfo.players[this.gameInfo.activePlayerIndex].activeCharacters;
 
     // Loop through each character and add their location to the set
     Object.values(activePlayerCharacters).forEach(character => {
