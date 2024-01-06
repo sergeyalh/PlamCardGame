@@ -16,7 +16,8 @@
         "Sword Skills": 4,
         "Gun Skills": 8,
         "Vision": 7,
-        "Stealth": 6
+        "Stealth": 6,
+        "Salary": 0
     },    
     "characters": [
         {
@@ -37,7 +38,8 @@
             "Gun Skills": 8,
             "Vision": 7,
             "Stealth": 9,
-            "Cost": 10
+            "Cost": 10,
+            "Salary": 8
         },
         {
             "nickname": "Tech Warden",
@@ -57,7 +59,8 @@
             "Gun Skills": 6,
             "Vision": 8,
             "Stealth": 5,
-            "Cost": 8
+            "Cost": 8,
+            "Salary": 6
         },
         {
             "nickname": "Drone Ranger",
@@ -77,7 +80,8 @@
             "Gun Skills": 7,
             "Vision": 10,
             "Stealth": 10,
-            "Cost": 12
+            "Cost": 12,
+            "Salary": 10
         },
         {
             "nickname": "Cyber Sapper",
@@ -97,7 +101,8 @@
             "Gun Skills": 5,
             "Vision": 10,
             "Stealth": 6,
-            "Cost": 9
+            "Cost": 9,
+            "Salary": 7
         },
         {
             "nickname": "Gadgeteer Ghost",
@@ -117,7 +122,8 @@
             "Gun Skills": 10,
             "Vision": 10,
             "Stealth": 10,
-            "Cost": 11
+            "Cost": 11,
+            "Salary": 9
         },        
         {
             "nickname": "Iron Sentinel",
@@ -136,7 +142,8 @@
             "Gun Skills": 3,
             "Vision": 5,
             "Stealth": 2,
-            "Cost": 8
+            "Cost": 8,
+            "Salary": 6
         },
         {
             "nickname": "Crimson Rogue",
@@ -156,7 +163,8 @@
             "Gun Skills": 5,
             "Vision": 7,
             "Stealth": 9,
-            "Cost": 9
+            "Cost": 9,
+            "Salary": 6
         },
         {
             "nickname": "Arcane Scholar",
@@ -176,7 +184,8 @@
             "Gun Skills": 1,
             "Vision": 9,
             "Stealth": 4,
-            "Cost": 9
+            "Cost": 9,
+            "Salary": 7
         },
         {
             "nickname": "Dread Pirate",
@@ -196,7 +205,8 @@
             "Gun Skills": 8,
             "Vision": 7,
             "Stealth": 5,
-            "Cost": 9
+            "Cost": 9,
+            "Salary": 7
         },
         {
             "nickname": "Beast Tamer",
@@ -216,7 +226,8 @@
             "Gun Skills": 2,
             "Vision": 6,
             "Stealth": 8,
-            "Cost": 7
+            "Cost": 7,
+            "Salary": 5
         },        
         {
             "nickname": "Shadow Blade",
@@ -236,7 +247,8 @@
             "Gun Skills": 3,
             "Vision": 7,
             "Stealth": 9,
-            "Cost": 3
+            "Cost": 3,
+            "Salary": 1
         },
         {
             "nickname": "Mystic Healer",
@@ -256,7 +268,8 @@
             "Gun Skills": 1,
             "Vision": 8,
             "Stealth": 3,
-            "Cost": 7
+            "Cost": 7,
+            "Salary": 4
         },
         {
             "nickname": "Tribal Mystic",
@@ -276,7 +289,8 @@
             "Gun Skills": 5,
             "Vision": 8,
             "Stealth": 10,
-            "Cost": 6
+            "Cost": 6,
+            "Salary": 4
         },
         {
             "nickname": "Hazard Hawk",
@@ -296,7 +310,8 @@
             "Gun Skills": 9,
             "Vision": 10,
             "Stealth": 5,
-            "Cost": 6
+            "Cost": 6,
+            "Salary": 4
         },
         {
             "nickname": "Venom Stalker",
@@ -316,7 +331,8 @@
             "Gun Skills": 0,
             "Vision": 8,
             "Stealth": 7,
-            "Cost": 2
+            "Cost": 2,
+            "Salary": 1
         }
     ]
 }

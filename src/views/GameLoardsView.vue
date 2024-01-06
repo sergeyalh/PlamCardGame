@@ -86,9 +86,9 @@ const gameScene = new Phaser.Class({
     this.add.rectangle(this.menuWidth / 2, this.menuHeight / 2, this.menuWidth, this.menuHeight, 0x333333);
 
     // Add some menu items
-    this.date = this.add.text(66, 10, this.gameInfo.date.year + 'K.' +
+    this.date = this.add.text(66, 10, "Week " + this.gameInfo.date.week + "." +
       this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
-      '.' + this.gameInfo.date.week, { font: '16px Arial', fill: '#03fc2c' });
+      '.' + this.gameInfo.date.year + 'K', { font: '16px Arial', fill: '#03fc2c' });
 
 
     // Create a box for the player info
@@ -449,7 +449,7 @@ const gameScene = new Phaser.Class({
     descriptiontextBlock.setOrigin(0.5, 0);
     this.characterInfoPopup.add(descriptiontextBlock);
 
-    const excludeKeys = ["HP", "Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
+    const excludeKeys = ["actionForNextTurn", "HP", "Level", "XP", "description", "nickname", "imagePath", "location", "visualDescription", "image", "id"];  // Array of keys to exclude
     Object.keys(character).forEach(key => {
       // Skip imagePath to not display it as text
 
@@ -1027,8 +1027,12 @@ const gameScene = new Phaser.Class({
   },
 
   showEndTurnConfirmation(activePlayer, activePlayerCharacters) {
+    // Create an overlay
+    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
+    
     // Create popup container for end turn confirmation
     let confirmationPopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+    confirmationPopup.setDepth(11);
 
     // Add a semi-transparent background for the popup
     let bg = this.add.rectangle(0, 0, 500, 200, 0x000000);
@@ -1045,8 +1049,9 @@ const gameScene = new Phaser.Class({
     okButton.setInteractive();
     okButton.on('pointerdown', () => {
       // Logic to end the turn
-      this.endTurnApproved(activePlayer, activePlayerCharacters);
+      this.removeOverLay(overLay);
       confirmationPopup.destroy();
+      this.endTurnApproved(activePlayer, activePlayerCharacters);
     });
     confirmationPopup.add(okButton);
 
@@ -1056,6 +1061,7 @@ const gameScene = new Phaser.Class({
     cancelButton.on('pointerdown', () => {
       // Logic to close the popup and return to the game
       confirmationPopup.destroy();
+      this.removeOverLay(overLay);
     });
     confirmationPopup.add(cancelButton);
 
@@ -1064,6 +1070,7 @@ const gameScene = new Phaser.Class({
   },
 
   endTurnApproved: function (activePlayer, activePlayerCharacters) {
+    this.removeCharactersSalariesFromPlayerBalance(activePlayer, activePlayerCharacters);
     if (activePlayer.pendingFiering !== null) {
       this.deleteCharacterAndAddNewUniqeRandomCharacter();
     } else if (activePlayer.pendingHiring !== null) {
@@ -1093,15 +1100,31 @@ const gameScene = new Phaser.Class({
           this.gameInfo.date.year += 1;
         }
       }
-      this.date.setText(this.gameInfo.date.year + 'K.' +
-        this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
-        '.' + this.gameInfo.date.week);
+      this.date.setText("Week " + this.gameInfo.date.week + "." +
+      this.gameInfo.monthsList[this.gameInfo.date.month - 1] +
+      '.' + this.gameInfo.date.year + 'K');
     }
     this.clearCharactersOptionsView();
     this.updatePlayerIndicators(); // Update the visual indication for active player
     this.updatePlayerInfo(); // Update the player info display for the new active player
 
     this.updateCharacterIcons();
+    this.playerNews();
+  },
+
+  playerNew: function (){
+    
+  },
+
+  removeCharactersSalariesFromPlayerBalance: function (activePlayer, activePlayerCharacters) {
+    let totalSalary = 0;
+    for (let characterId in activePlayerCharacters) {
+        let character = activePlayerCharacters[characterId];
+        totalSalary += character.Salary; // Ensure that each character has a 'Salary' property
+    }
+
+    // Deduct the total salary from the player's balance
+    activePlayer.cash -= totalSalary;
   },
 
   updatePlayerIndicators: function () {
