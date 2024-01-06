@@ -16,16 +16,49 @@ const gameScene = new Phaser.Class({
       activePlayerCharactersOptions: [],
       activPlayereCharactersLocationIcons: [],
       characterOptions: ["Move", "Attack", "Bribe", "Build", "Research", "Buy", "Conquer"],
+      newsItemsOptions: ["TerritoryWasConquered","NewCharacter"],
       monthsList: ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"],
       colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
       date: { year: 10, month: 1, week: 1 },
       map: [],
       players: [
-        { nickname: "Jacob", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], underControlPieces: [], pendingFiering: null, pendingHiring: null },
-        { nickname: "Serg", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], underControlPieces: [], pendingFiering: null, pendingHiring: null },
-        { nickname: "Izov", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], underControlPieces: [], pendingFiering: null, pendingHiring: null },
-        { nickname: "Elad", cash: 100, nextIncome: 0, activeCharacters: {}, availableCharacters: [], underControlPieces: [], pendingFiering: null, pendingHiring: null }
+        { nickname: "Jacob", 
+          cash: 100, 
+          nextIncome: 0, 
+          activeCharacters: {}, 
+          availableCharacters: [], 
+          underControlPieces: [], 
+          pendingFiering: null, 
+          pendingHiring: null,
+          news: [] },
+        { nickname: "Serg", 
+          cash: 100, 
+          nextIncome: 0, 
+          activeCharacters: {}, 
+          availableCharacters: [], 
+          underControlPieces: [], 
+          pendingFiering: null, 
+          pendingHiring: null,
+          news: [] },
+        { nickname: "Izov", 
+          cash: 100, 
+          nextIncome: 0, 
+          activeCharacters: {}, 
+          availableCharacters: [], 
+          underControlPieces: [], 
+          pendingFiering: null, 
+          pendingHiring: null,
+          news: [] },
+        { nickname: "Elad", 
+          cash: 100, 
+          nextIncome: 0, 
+          activeCharacters: {}, 
+          availableCharacters: [], 
+          underControlPieces: [], 
+          pendingFiering: null, 
+          pendingHiring: null,
+          news: [] }
       ]
     };
   },
@@ -46,6 +79,11 @@ const gameScene = new Phaser.Class({
     for (let i = 1; i <= 4; i++) {
       this.load.image('player' + i, 'players/player' + i + '.png');
     }
+    for (let i = 0; i < this.gameInfo.newsItemsOptions.length; i++) {
+      this.load.image(this.gameInfo.newsItemsOptions[i], 'news/' + this.gameInfo.newsItemsOptions[i] + '.png');
+    }
+
+
 
     this.load.json('characters', 'characters.json');
 
@@ -798,6 +836,8 @@ const gameScene = new Phaser.Class({
         console.log(charToAddInfo.Cost);
         this.gameInfo.players[playerIndex].availableCharacters[charToAdd.index] = this.charactersData[randomNumber];
         foundCharToAdd = true;
+
+        this.playerNewsAdd({action:"NewCharacter", character: charToAddInfo});
       }
     }
 
@@ -999,6 +1039,7 @@ const gameScene = new Phaser.Class({
       let x = charNextTurnAction.x;
       let y = charNextTurnAction.y;
       this.conquerTerritory(this.gameInfo.activePlayerIndex, y, x);
+      this.playerNewsAdd({action:"TerritoryWasConquered", x, y});
     }
     character.actionForNextTurn = null;
 
@@ -1008,16 +1049,12 @@ const gameScene = new Phaser.Class({
     let activePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
     // Get the active player's characters
     const activePlayerCharacters = activePlayer.activeCharacters;
-    //const charactersThatNotAssignedToDoAnyJob = activePlayerCharacters.filter((char) => char.actionForNextTurn == null || char.actionForNextTurn == undefined);
 
+    // TODO REMOVE COMMENT
     const charactersArray = Object.values(activePlayerCharacters); // Convert object values into an array
-
     // Filter characters that don't have an 'actionForNextTurn' property or it's null/undefined
     const charactersThatNotAssignedToDoAnyJob = charactersArray.filter((char) => !char.actionForNextTurn);
-
-    // Get the count
     const count = charactersThatNotAssignedToDoAnyJob.length;
-
     if (count == 0) {
       this.endTurnApproved(activePlayer, activePlayerCharacters);
     } else {
@@ -1109,11 +1146,96 @@ const gameScene = new Phaser.Class({
     this.updatePlayerInfo(); // Update the player info display for the new active player
 
     this.updateCharacterIcons();
-    this.playerNews();
+    const newActivePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
+    if (newActivePlayer.news.length > 0){
+      this.playerNewsPopup(newActivePlayer);
+    }
   },
 
-  playerNew: function (){
-    
+  playerNewsAdd: function (newsItem){
+    const newActivePlayer = this.gameInfo.players[this.gameInfo.activePlayerIndex];
+    newActivePlayer.news.push(newsItem);
+  },
+
+  //Here i will update the player with his new characters, new items, player that died and other news
+  playerNewsPopup: function (player){
+    // Create an overlay
+    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
+    let newsItems = player.news; // The news array for the player
+
+    // Create popup container for news
+    this.newsPopup = this.add.container(855, 520);
+    this.newsPopup.setDepth(12);
+
+    // Add a white border around the popup
+    let border = this.add.rectangle(0, 0, 800, 600);
+    border.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
+    this.newsPopup.add(border);
+
+    // Create the background for the popup
+    const background = this.add.rectangle(0, 0, 800, 600, 0x000000);
+    background.setAlpha(0.7);
+    this.newsPopup.add(background);
+
+    // Display the first news item image (assuming a placeholder image 'newsPlaceholder')
+    let currentNewsIndex = 0; // Track the current index of the news being displayed
+    let newsImage = this.add.image(0, -60, newsItems[currentNewsIndex].action).setDisplaySize(600, 400); // Placeholder for news item images
+    this.newsPopup.add(newsImage);
+
+    let borderImage = this.add.rectangle(0, -60, 600, 400);
+    borderImage.setStrokeStyle(2, 0xffffff);  // 2 is the line thickness, 0xffffff is the color white
+    this.newsPopup.add(borderImage);
+
+    // Text area for the news text
+    let newsText = this.add.text(-100, 145, newsItems[currentNewsIndex].action, { fontSize: '18px', fill: '#ffffff', wordWrap: { width: 200 }, align: 'left' });
+    this.newsPopup.add(newsText);
+
+    // Navigation arrows as text objects
+    let leftArrow = this.add.text(-200, 145, '<', { fontSize: '24px', fill: '#ffffff' }).setInteractive();
+    let rightArrow = this.add.text(200, 145, '>', { fontSize: '24px', fill: '#ffffff' }).setInteractive();
+
+    // Update the visibility or style of the arrows based on the news item index
+    function updateArrows() {
+        leftArrow.setFill(currentNewsIndex > 0 ? '#ffffff' : '#777777');  // Active or disabled color
+        rightArrow.setFill(currentNewsIndex < newsItems.length - 1 ? '#ffffff' : '#777777'); // Active or disabled color
+    }
+    updateArrows(); // Call initially to set the correct state of the arrows
+
+    // Update news function
+    function updateNews(index) {
+        newsText.setText(newsItems[index].action); // Update text
+        // Update the image of the news item here with newsItems[index].image
+        newsImage.setTexture(newsItems[currentNewsIndex].action).setDisplaySize(600, 400); // Update or keep placeholder if no image
+        updateArrows();
+    }
+
+    // Left arrow click - Go to the previous news item
+    leftArrow.on('pointerdown', () => {
+        if (currentNewsIndex > 0) {
+            currentNewsIndex--;
+            updateNews(currentNewsIndex); // Update the news item
+        }
+    });
+
+    // Right arrow click - Go to the next news item
+    rightArrow.on('pointerdown', () => {
+        if (currentNewsIndex < newsItems.length - 1) {
+            currentNewsIndex++;
+            updateNews(currentNewsIndex); // Update the news item
+        }
+    });
+
+    this.newsPopup.add(leftArrow);
+    this.newsPopup.add(rightArrow);
+
+    // Add close button at the top right corner
+    let closeButton = this.add.text(385, -300, 'X', { fontSize: '20px', fill: '#FF0000' }).setInteractive();
+    closeButton.on('pointerdown', () => {
+      this.newsPopup.destroy(); // Close the popup when X is clicked
+      this.removeOverLay(overLay);
+      player.news = [];
+    });
+    this.newsPopup.add(closeButton);
   },
 
   removeCharactersSalariesFromPlayerBalance: function (activePlayer, activePlayerCharacters) {
