@@ -4,6 +4,7 @@
 
 <script>
 import Phaser from 'phaser';
+import { Config } from './AntarticaConfigurations/ConfigurationsAndConsts'; // Import the entire configuration object
 
 // Define the Phaser scene
 const gameScene = new Phaser.Class({
@@ -22,44 +23,7 @@ const gameScene = new Phaser.Class({
       colors: [0xFF0000, 0x008000, 0xFF6FFF, 0x0000FF],
       date: { year: 10, month: 1, week: 1 },
       map: [],
-      players: [
-        { nickname: "Jacob", 
-          cash: 100, 
-          nextIncome: 0, 
-          activeCharacters: {}, 
-          availableCharacters: [], 
-          underControlPieces: [], 
-          pendingFiering: null, 
-          pendingHiring: null,
-          news: [] },
-        { nickname: "Serg", 
-          cash: 100, 
-          nextIncome: 0, 
-          activeCharacters: {}, 
-          availableCharacters: [], 
-          underControlPieces: [], 
-          pendingFiering: null, 
-          pendingHiring: null,
-          news: [] },
-        { nickname: "Izov", 
-          cash: 100, 
-          nextIncome: 0, 
-          activeCharacters: {}, 
-          availableCharacters: [], 
-          underControlPieces: [], 
-          pendingFiering: null, 
-          pendingHiring: null,
-          news: [] },
-        { nickname: "Elad", 
-          cash: 100, 
-          nextIncome: 0, 
-          activeCharacters: {}, 
-          availableCharacters: [], 
-          underControlPieces: [], 
-          pendingFiering: null, 
-          pendingHiring: null,
-          news: [] }
-      ]
+      players: Config.Players
     };
   },
 
@@ -84,7 +48,6 @@ const gameScene = new Phaser.Class({
     }
 
 
-
     this.load.json('characters', 'characters.json');
 
     this.load.image('turnIndicator', '/clock.png');
@@ -103,12 +66,7 @@ const gameScene = new Phaser.Class({
     this.load.once('complete', this.setupGame, this); // Setup the callback for when loading is complete
     this.load.start(); // Start the loader
 
-    this.menuWidth = 250;
-    this.menuHeight = this.game.config.height;
-    this.characterSlotHeight = 120;
-    this.panelHeight = 20; // Height for the bottom panel
-    this.characterImageHeight = this.characterSlotHeight - this.panelHeight; // Remaining height for the image
-    this.startYforChars = this.game.config.height - (this.characterSlotHeight * 3); // Position for the first character slot
+    this.startYforChars = Config.Dimensions.GAME_HEIGHT - (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT * 3); // Position for the first character slot
     this.playerSlotHeight = 70; // Height of the players section
     this.playerOffsetX = 180; // Size of the grid cell
     this.playersBufferFromMenu = 250;
@@ -117,11 +75,11 @@ const gameScene = new Phaser.Class({
     this.cellSize = 150; // Size of the grid cell
     this.battleGroundColums = 8; // Number of columns
     this.battleGroundColumsRows = 6; // Update number of rows to 8
-    this.gridStart = this.menuWidth + 10;
+    this.gridStart = Config.Dimensions.MENU_WIDTH + 10;
   },
   setupGame: function () {
     // Create a menu panel
-    this.add.rectangle(this.menuWidth / 2, this.menuHeight / 2, this.menuWidth, this.menuHeight, 0x333333);
+    this.add.rectangle(Config.Dimensions.MENU_WIDTH / 2,Config.Dimensions.MENU_HEIGHT / 2, Config.Dimensions.MENU_WIDTH,Config.Dimensions.MENU_HEIGHT, 0x333333);
 
     // Add some menu items
     this.date = this.add.text(66, 10, "Week " + this.gameInfo.date.week + "." +
@@ -140,33 +98,33 @@ const gameScene = new Phaser.Class({
 
     // Draw the character slots with images and interactive elements
     for (let i = 0; i < 3; i++) {
-      const slotY = this.startYforChars + (i * this.characterSlotHeight);
-      const panelY = slotY + this.characterImageHeight + (this.panelHeight / 2);
+      const slotY = this.startYforChars + (i * Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT);
+      const panelY = slotY + Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT + (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_BOTTOM_PANEL_HEIGHT / 2);
 
       // Create the character slot
-      this.add.rectangle(this.menuWidth / 2, slotY + (this.characterImageHeight / 2), this.menuWidth, this.characterImageHeight, 0x444444);
+      this.add.rectangle(Config.Dimensions.MENU_WIDTH / 2, slotY + (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT / 2), Config.Dimensions.MENU_WIDTH, Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT, 0x444444);
 
       // Create the panel at the bottom of the slot
-      this.add.rectangle(this.menuWidth / 2, panelY, this.menuWidth, this.panelHeight, 0x666666);
+      this.add.rectangle(Config.Dimensions.MENU_WIDTH / 2, panelY, Config.Dimensions.MENU_WIDTH, Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_BOTTOM_PANEL_HEIGHT, 0x666666);
 
       // '+' Button in the panel
-      const plusButton = this.add.text(this.menuWidth - 40, panelY - 10, '+', { font: '20px Arial', fill: '#00ff00' }).setInteractive();
+      const plusButton = this.add.text(Config.Dimensions.MENU_WIDTH - 40, panelY - 10, '+', { font: '20px Arial', fill: '#00ff00' }).setInteractive();
       plusButton.on('pointerdown', () => this.addCharacter(i));
 
       // 'x' Button in the panel
-      const deleteButton = this.add.text(this.menuWidth - 20, panelY - 12, 'x', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
+      const deleteButton = this.add.text(Config.Dimensions.MENU_WIDTH - 20, panelY - 12, 'x', { font: '20px Arial', fill: '#ff0000' }).setInteractive();
       deleteButton.on('pointerdown', () => this.deleteCharacter(i));
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
-        this.add.line(0, 0, 0, slotY, this.menuWidth, slotY, 0xffffff).setOrigin(0, 0);
+        this.add.line(0, 0, 0, slotY, Config.Dimensions.MENU_WIDTH, slotY, 0xffffff).setOrigin(0, 0);
       }
     }
 
     // Draw the player slots
     for (let i = 0; i < 4; i++) {
       // Positioning each player slot
-      const slotX = (i * this.playerOffsetX) + this.menuWidth + this.playersBufferFromMenu + (this.playerOffsetX / 2);
+      const slotX = (i * this.playerOffsetX) + Config.Dimensions.MENU_WIDTH + this.playersBufferFromMenu + (this.playerOffsetX / 2);
       const slotY = this.playerSlotHeight / 2;
       this.add.rectangle(slotX, slotY, this.playerOffsetX, this.playerSlotHeight - 10, 0x333333);
       // Add player image
@@ -176,7 +134,7 @@ const gameScene = new Phaser.Class({
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
-        const lineX = (i * this.playerOffsetX) + this.menuWidth + this.playersBufferFromMenu;
+        const lineX = (i * this.playerOffsetX) + Config.Dimensions.MENU_WIDTH + this.playersBufferFromMenu;
         this.add.line(0, 0, lineX, 0, lineX, this.playerSlotHeight, 0xffffff).setOrigin(0, 0);
       }
     }
@@ -296,7 +254,7 @@ const gameScene = new Phaser.Class({
   },
 
   showCharacterActionsPopup: function (character, x, y, characterOnPopUpxOffset, characterOnPopUpyOffset) {
-    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height, 9);
+    let overLay = this.createOverlay(0, 0, Config.Dimensions.GAME_WIDTH, Config.Dimensions.GAME_HEIGHT, 9);
 
     let popupWidth = 150;
     let popupHeight = 325;
@@ -360,7 +318,7 @@ const gameScene = new Phaser.Class({
     let charX = character.location.x;
     let charY = character.location.y;
 
-    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height, 9);
+    let overLay = this.createOverlay(0, 0, Config.Dimensions.GAME_WIDTH, Config.Dimensions.GAME_HEIGHT, 9);
 
     // Calculate surrounding grid indices, ensuring they are within the bounds of your game's map
     let minX = Math.max(0, charX - 1);
@@ -369,7 +327,7 @@ const gameScene = new Phaser.Class({
     let maxY = Math.min(this.battleGroundColumsRows - 1, charY + 1);
 
     // Create popup container for move options
-    this.movePopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+    this.movePopup = this.add.container(Config.Dimensions.GAME_WIDTH / 2, Config.Dimensions.GAME_HEIGHT / 2);
     this.movePopup.setDepth(9);
 
     // Add a background for the popup
@@ -459,7 +417,7 @@ const gameScene = new Phaser.Class({
     let popupHeight = 600;
 
     // Create a container for the popup
-    this.characterInfoPopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+    this.characterInfoPopup = this.add.container(Config.Dimensions.GAME_WIDTH / 2, Config.Dimensions.GAME_HEIGHT / 2);
 
     // Create a semi-transparent background
     let bg = this.add.rectangle(0, 0, popupWidth, popupHeight, 0x000000);
@@ -499,7 +457,7 @@ const gameScene = new Phaser.Class({
       }
     });
 
-    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height, 8);
+    let overLay = this.createOverlay(0, 0, Config.Dimensions.GAME_WIDTH, Config.Dimensions.GAME_HEIGHT, 8);
 
     // Add a close button or area
     let closeButton = this.add.text(185, -300, 'X', { fontSize: '20px', fill: '#ff0000' });
@@ -546,11 +504,11 @@ const gameScene = new Phaser.Class({
     this.closeMapPopup();
 
     // Create an overlay
-    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
+    let overLay = this.createOverlay(0, 0, Config.Dimensions.GAME_WIDTH, Config.Dimensions.GAME_HEIGHT);
 
     // Create a new popup at the center of the game
-    const popupX = this.game.config.width / 2 + 125;
-    const popupY = this.game.config.height / 2 + 36;
+    const popupX = Config.Dimensions.GAME_WIDTH / 2 + 125;
+    const popupY = Config.Dimensions.GAME_HEIGHT / 2 + 36;
 
     // Create a new container for the popup elements
     this.mapPopup = this.add.container(popupX, popupY);
@@ -748,11 +706,11 @@ const gameScene = new Phaser.Class({
 
   initCharactersOptionsView: function (playerIndex) {
     for (let i = 0; i < this.gameInfo.players[playerIndex].availableCharacters.length; i++) {
-      const slotY = this.startYforChars + (i * this.characterSlotHeight);
-      const panelY = slotY + this.characterImageHeight + (this.panelHeight / 2);
+      const slotY = this.startYforChars + (i * Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT);
+      const panelY = slotY + Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT + (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_BOTTOM_PANEL_HEIGHT / 2);
       // Add character image
       this.gameInfo.activePlayerCharactersOptions[i] = {};
-      this.gameInfo.activePlayerCharactersOptions[i].image = this.add.image(this.menuWidth / 2, slotY + (this.characterImageHeight / 2), this.gameInfo.players[playerIndex].availableCharacters[i].nickname).setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+      this.gameInfo.activePlayerCharactersOptions[i].image = this.add.image(Config.Dimensions.MENU_WIDTH / 2, slotY + (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT / 2), this.gameInfo.players[playerIndex].availableCharacters[i].nickname).setDisplaySize(Config.Dimensions.MENU_WIDTH - 3, Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT);
       this.gameInfo.activePlayerCharactersOptions[i].image.setInteractive();
 
       this.gameInfo.activePlayerCharactersOptions[i].image.on('pointerdown', () => {
@@ -888,7 +846,7 @@ const gameScene = new Phaser.Class({
     }
 
     // Add a transparent overlay or a deletion icon on the character's image
-    this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+    this.addIcon = this.add.image(panelY, slotY, 'addIndicator').setDisplaySize(Config.Dimensions.MENU_WIDTH - 3, Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT);
     this.addIcon.setAlpha(0.3); // Make it semi-transparent
     // character.deleteIcon = deleteIcon; // Store the reference for future use
     this.gameInfo.players[playerIndex].pendingHiring = { index, selectedX: x, selectedY: y };
@@ -950,10 +908,10 @@ const gameScene = new Phaser.Class({
       const panelY = 0 + 125;
       // Check if there is enough availabe cash for the selected character
       if (this.gameInfo.players[playerIndex].availableCharacters[index].Cost <= this.gameInfo.players[playerIndex].cash) {
-        let overLay = this.createOverlay(0, 0, this.menuWidth, this.game.config.height);
+        let overLay = this.createOverlay(0, 0, Config.Dimensions.MENU_WIDTH, Config.Dimensions.GAME_HEIGHT);
 
         // Display the message or button
-        let promptText = this.add.text(panelY, slotY, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff', wordWrap: { width: this.menuWidth } });
+        let promptText = this.add.text(panelY, slotY, 'Please select where you want the character or Cancel', { fontSize: '20px', fill: '#ffffff', wordWrap: { width: Config.Dimensions.MENU_WIDTH } });
         promptText.setOrigin(0.5, 0.5); // Center the text
         promptText.setDepth(7);
 
@@ -971,7 +929,7 @@ const gameScene = new Phaser.Class({
 
       } else {
         let insufficientFundsImage = this.add.image(panelY, slotY, 'noCash');
-        insufficientFundsImage.setDisplaySize(this.menuWidth - 3, this.characterImageHeight); // Adjust the size as needed
+        insufficientFundsImage.setDisplaySize(Config.Dimensions.MENU_WIDTH - 3, Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT); // Adjust the size as needed
         insufficientFundsImage.setAlpha(0.6)
         // Timer to remove the image after 3 seconds
         this.time.delayedCall(3000, () => {
@@ -1008,7 +966,7 @@ const gameScene = new Phaser.Class({
       const panelY = 0 + 125;
 
       // Add a transparent overlay or a deletion icon on the character's image
-      this.deleteIcon = this.add.image(panelY, slotY, 'deleteIndicator').setDisplaySize(this.menuWidth - 3, this.characterImageHeight);
+      this.deleteIcon = this.add.image(panelY, slotY, 'deleteIndicator').setDisplaySize(Config.Dimensions.MENU_WIDTH - 3, Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT);
       this.deleteIcon.setAlpha(0.3); // Make it semi-transparent
       // character.deleteIcon = deleteIcon; // Store the reference for future use
       this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering = index;
@@ -1065,10 +1023,10 @@ const gameScene = new Phaser.Class({
 
   showEndTurnConfirmation(activePlayer, activePlayerCharacters) {
     // Create an overlay
-    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
+    let overLay = this.createOverlay(0, 0, Config.Dimensions.GAME_WIDTH, Config.Dimensions.GAME_HEIGHT);
     
     // Create popup container for end turn confirmation
-    let confirmationPopup = this.add.container(this.game.config.width / 2, this.game.config.height / 2);
+    let confirmationPopup = this.add.container(Config.Dimensions.GAME_WIDTH / 2, Config.Dimensions.GAME_HEIGHT / 2);
     confirmationPopup.setDepth(11);
 
     // Add a semi-transparent background for the popup
@@ -1160,7 +1118,7 @@ const gameScene = new Phaser.Class({
   //Here i will update the player with his new characters, new items, player that died and other news
   playerNewsPopup: function (player){
     // Create an overlay
-    let overLay = this.createOverlay(0, 0, this.game.config.width, this.game.config.height);
+    let overLay = this.createOverlay(0, 0, Config.Dimensions.GAME_WIDTH, Config.Dimensions.GAME_HEIGHT);
     let newsItems = player.news; // The news array for the player
 
     // Create popup container for news
@@ -1278,8 +1236,8 @@ export default {
   mounted() {
     const config = {
       type: Phaser.AUTO,
-      width: 1470, // grid width (600) + menu width (250)
-      height: 980, // grid height (600) + players section (70)
+      width: Config.Dimensions.GAME_WIDTH,
+      height: Config.Dimensions.GAME_HEIGHT,
       parent: 'phaser-game',
       scene: [gameScene]
     };
