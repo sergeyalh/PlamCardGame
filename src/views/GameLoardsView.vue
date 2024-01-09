@@ -65,17 +65,6 @@ const gameScene = new Phaser.Class({
     // After setting up all the loaders for the images, start the loading process
     this.load.once('complete', this.setupGame, this); // Setup the callback for when loading is complete
     this.load.start(); // Start the loader
-
-    this.startYforChars = Config.Dimensions.GAME_HEIGHT - (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT * 3); // Position for the first character slot
-    this.playerSlotHeight = 70; // Height of the players section
-    this.playerOffsetX = 180; // Size of the grid cell
-    this.playersBufferFromMenu = 250;
-
-    // Grid values
-    this.cellSize = 150; // Size of the grid cell
-    this.battleGroundColums = 8; // Number of columns
-    this.battleGroundColumsRows = 6; // Update number of rows to 8
-    this.gridStart = Config.Dimensions.MENU_WIDTH + 10;
   },
   setupGame: function () {
     // Create a menu panel
@@ -98,7 +87,7 @@ const gameScene = new Phaser.Class({
 
     // Draw the character slots with images and interactive elements
     for (let i = 0; i < 3; i++) {
-      const slotY = this.startYforChars + (i * Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT);
+      const slotY = Config.Dimensions.CHARACTERS_TO_HIRE_TOP_Y_LOCATION + (i * Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT);
       const panelY = slotY + Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT + (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_BOTTOM_PANEL_HEIGHT / 2);
 
       // Create the character slot
@@ -124,18 +113,18 @@ const gameScene = new Phaser.Class({
     // Draw the player slots
     for (let i = 0; i < 4; i++) {
       // Positioning each player slot
-      const slotX = (i * this.playerOffsetX) + Config.Dimensions.MENU_WIDTH + this.playersBufferFromMenu + (this.playerOffsetX / 2);
-      const slotY = this.playerSlotHeight / 2;
-      this.add.rectangle(slotX, slotY, this.playerOffsetX, this.playerSlotHeight - 10, 0x333333);
+      const slotX = (i * Config.Dimensions.PLAYERS_SLOT_IMG_WIDTH) + Config.Dimensions.MENU_WIDTH + Config.Dimensions.PLAYERS_BUFFER_LEFT_MENU + (Config.Dimensions.PLAYERS_SLOT_IMG_WIDTH / 2);
+      const slotY = Config.Dimensions.PLAYERS_SLOT_HEIGHT / 2;
+      this.add.rectangle(slotX, slotY, Config.Dimensions.PLAYERS_SLOT_IMG_WIDTH, Config.Dimensions.PLAYERS_SLOT_HEIGHT - 10, 0x333333);
       // Add player image
-      this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(this.playerOffsetX, this.playerSlotHeight - 10);
+      this.add.image(slotX, slotY, 'player' + (i + 1)).setDisplaySize(Config.Dimensions.PLAYERS_SLOT_IMG_WIDTH, Config.Dimensions.PLAYERS_SLOT_HEIGHT - 10);
 
-      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, this.playerOffsetX - 22, this.playerSlotHeight - 10);
+      this.colorArea(slotX, slotY, this.gameInfo.colors[i], 0.3, Config.Dimensions.PLAYERS_SLOT_IMG_WIDTH - 22, Config.Dimensions.PLAYERS_SLOT_HEIGHT - 10);
 
       // Draw a line between the slots if it's not the first slot
       if (i > 0) {
-        const lineX = (i * this.playerOffsetX) + Config.Dimensions.MENU_WIDTH + this.playersBufferFromMenu;
-        this.add.line(0, 0, lineX, 0, lineX, this.playerSlotHeight, 0xffffff).setOrigin(0, 0);
+        const lineX = (i * Config.Dimensions.PLAYERS_SLOT_IMG_WIDTH) + Config.Dimensions.MENU_WIDTH + Config.Dimensions.PLAYERS_BUFFER_LEFT_MENU;
+        this.add.line(0, 0, lineX, 0, lineX, Config.Dimensions.PLAYERS_SLOT_HEIGHT, 0xffffff).setOrigin(0, 0);
       }
     }
 
@@ -144,13 +133,13 @@ const gameScene = new Phaser.Class({
     // Draw the grid
     const graphics = this.add.graphics({ lineStyle: { width: 1, color: 0xffffff } });
 
-    for (let i = 0; i < this.battleGroundColumsRows; i++) {
+    for (let i = 0; i < Config.Dimensions.BG_NUM_OF_ROWS; i++) {
       this.gameInfo.map[i] = [];
-      for (let j = 0; j < this.battleGroundColums; j++) {
-        const x = j * this.cellSize + this.gridStart + (this.cellSize / 2);
-        const y = i * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
+      for (let j = 0; j < Config.Dimensions.BG_NUM_OF_COLUMNS; j++) {
+        const x = j * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.BG_LEFT_X_LOCATION + (Config.Dimensions.BG_CELL_SIZE / 2);
+        const y = i * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.PLAYERS_SLOT_HEIGHT + (Config.Dimensions.BG_CELL_SIZE / 2);
         const randomPiece = 'mapPiece' + Phaser.Math.Between(1, 6); // Randomly choose a map piece
-        let mapP = this.add.image(x, y, randomPiece).setDisplaySize(this.cellSize - 3, this.cellSize - 3); // Scale the image to fit the cell
+        let mapP = this.add.image(x, y, randomPiece).setDisplaySize(Config.Dimensions.BG_CELL_SIZE - 3, Config.Dimensions.BG_CELL_SIZE - 3); // Scale the image to fit the cell
         this.gameInfo.map[i][j] = {
           charactersOnMapPiece: [],
           x: x,
@@ -163,13 +152,13 @@ const gameScene = new Phaser.Class({
     }
 
     // Draw the grid lines on top of the images
-    for (let i = 0; i <= this.battleGroundColums; i++) {
-      graphics.moveTo(i * this.cellSize + this.gridStart, this.playerSlotHeight);
-      graphics.lineTo(i * this.cellSize + this.gridStart, this.cellSize * this.battleGroundColumsRows + this.playerSlotHeight);
+    for (let i = 0; i <= Config.Dimensions.BG_NUM_OF_COLUMNS; i++) {
+      graphics.moveTo(i * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.BG_LEFT_X_LOCATION, Config.Dimensions.PLAYERS_SLOT_HEIGHT);
+      graphics.lineTo(i * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.BG_LEFT_X_LOCATION, Config.Dimensions.BG_CELL_SIZE * Config.Dimensions.BG_NUM_OF_ROWS + Config.Dimensions.PLAYERS_SLOT_HEIGHT);
     }
-    for (let j = 0; j <= this.battleGroundColumsRows; j++) {
-      graphics.moveTo(this.gridStart, j * this.cellSize + this.playerSlotHeight);
-      graphics.lineTo(this.cellSize * this.battleGroundColums + this.gridStart, j * this.cellSize + this.playerSlotHeight);
+    for (let j = 0; j <= Config.Dimensions.BG_NUM_OF_ROWS; j++) {
+      graphics.moveTo(Config.Dimensions.BG_LEFT_X_LOCATION, j * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.PLAYERS_SLOT_HEIGHT);
+      graphics.lineTo(Config.Dimensions.BG_CELL_SIZE * Config.Dimensions.BG_NUM_OF_COLUMNS + Config.Dimensions.BG_LEFT_X_LOCATION, j * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.PLAYERS_SLOT_HEIGHT);
     }
 
     this.playerInfoText = this.add.text(47, 60, "", { font: '16px Arial', fill: '#ffffff', align: 'left', wordWrap: { width: 190 } });
@@ -211,8 +200,8 @@ const gameScene = new Phaser.Class({
     // Now, place an icon for each location where the active player has an army
     Object.keys(locationsUnderControlAndCharactersCounter).forEach(locationKey => {
       const [y, x] = locationKey.split(',').map(Number);
-      const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
-      const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
+      const xOnMap = x * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.BG_LEFT_X_LOCATION + (Config.Dimensions.BG_CELL_SIZE / 2);
+      const yOnMap = y * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.PLAYERS_SLOT_HEIGHT + (Config.Dimensions.BG_CELL_SIZE / 2);
       let icon = null;
       if (locationsUnderControlAndCharactersCounter[locationKey] > 0) {
         icon = this.add.image(xOnMap, yOnMap, 'characterLocation');
@@ -322,9 +311,9 @@ const gameScene = new Phaser.Class({
 
     // Calculate surrounding grid indices, ensuring they are within the bounds of your game's map
     let minX = Math.max(0, charX - 1);
-    let maxX = Math.min(this.battleGroundColums - 1, charX + 1);
+    let maxX = Math.min(Config.Dimensions.BG_NUM_OF_COLUMNS - 1, charX + 1);
     let minY = Math.max(0, charY - 1);
-    let maxY = Math.min(this.battleGroundColumsRows - 1, charY + 1);
+    let maxY = Math.min(Config.Dimensions.BG_NUM_OF_ROWS - 1, charY + 1);
 
     // Create popup container for move options
     this.movePopup = this.add.container(Config.Dimensions.GAME_WIDTH / 2, Config.Dimensions.GAME_HEIGHT / 2);
@@ -706,7 +695,7 @@ const gameScene = new Phaser.Class({
 
   initCharactersOptionsView: function (playerIndex) {
     for (let i = 0; i < this.gameInfo.players[playerIndex].availableCharacters.length; i++) {
-      const slotY = this.startYforChars + (i * Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT);
+      const slotY = Config.Dimensions.CHARACTERS_TO_HIRE_TOP_Y_LOCATION + (i * Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_HEIGHT);
       const panelY = slotY + Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_IMG_HEIGHT + (Config.Dimensions.CHARACTERS_TO_HIRE_SLOT_BOTTOM_PANEL_HEIGHT / 2);
       // Add character image
       this.gameInfo.activePlayerCharactersOptions[i] = {};
@@ -852,8 +841,8 @@ const gameScene = new Phaser.Class({
     this.gameInfo.players[playerIndex].pendingHiring = { index, selectedX: x, selectedY: y };
 
     // Add Incomming icon
-    const xOnMap = x * this.cellSize + this.gridStart + (this.cellSize / 2);
-    const yOnMap = y * this.cellSize + this.playerSlotHeight + (this.cellSize / 2);
+    const xOnMap = x * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.BG_LEFT_X_LOCATION + (Config.Dimensions.BG_CELL_SIZE / 2);
+    const yOnMap = y * Config.Dimensions.BG_CELL_SIZE + Config.Dimensions.PLAYERS_SLOT_HEIGHT + (Config.Dimensions.BG_CELL_SIZE / 2);
     this.incommingIcon = this.add.image(xOnMap, yOnMap, 'incommingLocation');
     this.incommingIcon.setDisplaySize(170, 170); // Adjust size as needed
     this.incommingIcon.setDepth(5);
@@ -904,7 +893,7 @@ const gameScene = new Phaser.Class({
     const playerIndex = this.gameInfo.activePlayerIndex;
     if (!this.gameInfo.players[playerIndex].pendingHiring || index !== this.gameInfo.players[playerIndex].pendingHiring.index) {
       this.clearAddOrDeleteCharacteIcons();
-      const slotY = this.startYforChars + 50 + index * 120;
+      const slotY = Config.Dimensions.CHARACTERS_TO_HIRE_TOP_Y_LOCATION + 50 + index * 120;
       const panelY = 0 + 125;
       // Check if there is enough availabe cash for the selected character
       if (this.gameInfo.players[playerIndex].availableCharacters[index].Cost <= this.gameInfo.players[playerIndex].cash) {
@@ -962,7 +951,7 @@ const gameScene = new Phaser.Class({
   deleteCharacter: function (index) {
     if (index !== this.gameInfo.players[this.gameInfo.activePlayerIndex].pendingFiering) {
       this.clearAddOrDeleteCharacteIcons();
-      const slotY = this.startYforChars + 50 + index * 120;
+      const slotY = Config.Dimensions.CHARACTERS_TO_HIRE_TOP_Y_LOCATION + 50 + index * 120;
       const panelY = 0 + 125;
 
       // Add a transparent overlay or a deletion icon on the character's image
